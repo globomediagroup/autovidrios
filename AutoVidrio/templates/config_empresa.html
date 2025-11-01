@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% set title = "Datos de la Empresa" %}
+
+{% block content %}
+<section class="section">
+  <h1 class="h1"><i class="fa-solid fa-building"></i> Datos de la empresa</h1>
+
+  <!-- Formulario -->
+  <div class="card">
+    <form id="frmEmpresa" class="grid">
+
+      <!-- Información de la empresa -->
+      <div class="card-section">
+        <div class="card-title">Información de la empresa</div>
+        <div class="row">
+          <div class="col">
+            <div class="input-icon">
+              <i class="fa-solid fa-id-card"></i>
+              <input name="nombre" value="{{ empresa.nombre }}" class="pill-input" placeholder="Nombre legal de la empresa">
+            </div>
+          </div>
+          <div class="col">
+            <div class="input-icon">
+              <i class="fa-solid fa-barcode"></i>
+              <input name="rut" value="{{ empresa.rut }}" class="pill-input" placeholder="RUT (76.123.456-7)">
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <div class="input-icon">
+              <i class="fa-solid fa-phone"></i>
+              <input name="telefono" value="{{ empresa.telefono }}" class="pill-input" placeholder="Teléfono (+56 2 2345 6789)">
+            </div>
+          </div>
+          <div class="col">
+            <div class="input-icon">
+              <i class="fa-solid fa-location-dot"></i>
+              <input name="direccion" value="{{ empresa.direccion }}" class="pill-input" placeholder="Dirección (Av. Las Industrias 1234, Santiago)">
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-6">
+            <div class="input-icon">
+              <i class="fa-solid fa-image"></i>
+              <input type="file" name="logo" class="pill-input">
+            </div>
+            {% if empresa.logo %}
+              <div class="logo-preview">
+                <img src="{{ empresa.logo }}" alt="Logo">
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="card-separator"></div>
+
+      <!-- Configuración de documentos -->
+      <div class="card-section">
+        <div class="card-title">Configuración de documentos</div>
+        <div class="row">
+          <div class="col">
+            <div class="input-icon">
+              <i class="fa-solid fa-file-invoice"></i>
+              <input name="prefijo_cot" value="{{ empresa.prefijo_cot }}" class="pill-input" placeholder="Prefijo cotizaciones (Ej: COT-)">
+            </div>
+          </div>
+          <div class="col">
+            <div class="input-icon">
+              <i class="fa-solid fa-hashtag"></i>
+              <input type="number" name="correlativo_cot" value="{{ empresa.correlativo_cot }}" class="pill-input" placeholder="N° correlativo cotización">
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <div class="input-icon">
+              <i class="fa-solid fa-file-invoice-dollar"></i>
+              <input name="prefijo_ped" value="{{ empresa.prefijo_ped }}" class="pill-input" placeholder="Prefijo pedidos (Ej: PED-)">
+            </div>
+          </div>
+          <div class="col">
+            <div class="input-icon">
+              <i class="fa-solid fa-hashtag"></i>
+              <input type="number" name="correlativo_ped" value="{{ empresa.correlativo_ped }}" class="pill-input" placeholder="N° correlativo pedido">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-separator"></div>
+
+      <!-- Parámetros generales -->
+      <div class="card-section">
+        <div class="card-title">Parámetros generales</div>
+        <div class="row">
+          <div class="col">
+            <div class="input-icon">
+              <i class="fa-solid fa-percent"></i>
+              <input type="number" name="iva" value="{{ empresa.iva }}" class="pill-input" placeholder="IVA (%)">
+            </div>
+          </div>
+          <div class="col">
+            <div class="input-icon">
+              <i class="fa-solid fa-tag"></i>
+              <input type="number" name="descuento_general" value="{{ empresa.descuento_general }}" class="pill-input" placeholder="Descuento general (%)">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <button type="submit" class="btn primary"><i class="fa-solid fa-save"></i> Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<style>
+.grid .row{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:16px}
+.grid .col{display:flex;flex-direction:column;gap:6px}
+.grid .col-6{grid-column:span 2}
+
+.card-section{margin-bottom:16px}
+.card-separator{height:1px;background:#e5e7eb;margin:16px 0}
+.footer{display:flex;justify-content:flex-start;align-items:center;padding-top:10px}
+
+.input-icon {
+  display:flex;
+  align-items:center;
+  border:1px solid #d1d5db;
+  border-radius:12px;
+  padding:0 10px;
+  background:#fff;
+}
+.input-icon i {
+  color:#64748b;
+  margin-right:8px;
+}
+.input-icon .pill-input {
+  border:none;
+  flex:1;
+  padding:10px;
+  font-size:14px;
+  background:transparent;
+}
+.input-icon .pill-input:focus {
+  outline:none;
+}
+.logo-preview img{
+  max-height:60px;
+  border-radius:8px;
+  border:1px solid #e5e7eb;
+  padding:4px;
+  background:#fff;
+  margin-top:8px;
+}
+</style>
+
+<style>
+.grid .row{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:16px}
+.grid .col{display:flex;flex-direction:column;gap:6px}
+.grid .col-6{grid-column:span 2}
+
+.card-section{margin-bottom:16px}
+.card-separator{height:1px;background:#e5e7eb;margin:16px 0}
+.footer{display:flex;justify-content:flex-start;align-items:center;padding-top:10px}
+
+.input-icon {
+  display:flex;
+  align-items:center;
+  border:1px solid #d1d5db;
+  border-radius:12px;
+  padding:6px 14px;   /* MÁS ESPACIO LATERAL */
+  background:#fff;
+}
+.input-icon i {
+  color:#64748b;
+  margin-right:10px;  /* separa icono del texto */
+  font-size:15px;
+}
+.input-icon .pill-input {
+  border:none;
+  flex:1;
+  padding:6px 4px;   /* más aire interno sin aumentar altura */
+  font-size:14px;
+  background:transparent;
+}
+.input-icon .pill-input:focus {
+  outline:none;
+}
+.logo-preview img{
+  max-height:60px;
+  border-radius:8px;
+  border:1px solid #e5e7eb;
+  padding:4px;
+  background:#fff;
+  margin-top:8px;
+}
+.card {
+  padding: 20px 24px; /* aire interno general en la tarjeta */
+}
+
+.grid {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+</style>
+
+
+<script>
+const frm = document.getElementById('frmEmpresa');
+frm.addEventListener('submit', async e=>{
+  e.preventDefault();
+
+  const data = new FormData(frm);
+
+  try {
+    const res = await fetch('/api/config/empresa', {
+      method: 'POST',
+      body: data
+    });
+
+    const json = await res.json();
+
+    if (!json.ok) {
+      alert(json.error || 'Error al guardar los datos');
+      return;
+    }
+
+    alert('✅ Datos de la empresa guardados correctamente');
+  } catch (err) {
+    console.error(err);
+    alert('Error de conexión con el servidor');
+  }
+});
+</script>
+
+
+{% endblock %}

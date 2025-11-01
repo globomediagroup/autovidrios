@@ -1,0 +1,7 @@
+{
+  "default": [
+    "clientes",
+    "inventario",
+    "ventas"
+  ]
+}

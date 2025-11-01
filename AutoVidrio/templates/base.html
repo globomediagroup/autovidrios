@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ title or "Panel" }} · AutoVidrio</title>
+<link rel="stylesheet" href="/static/dashboard.css">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* Fondo (overlay) al abrir el menú en mobile */
+.nav-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35); /* solo oscurece */
+  z-index: 900;
+  display: none;
+}
+
+body.nav-open .nav-mask {
+  display: block;
+}
+
+
+  /* ===== Widget cotizador junto al perfil ===== */
+  .cotz-wrap{display:flex;align-items:center;gap:10px;margin-left:auto;margin-right:12px}
+  .topbar .usercard{margin-left:0 !important}
+
+  .cotz-btn{
+    position:relative;width:40px;height:40px;border-radius:12px;
+    display:grid;place-items:center;border:1px solid var(--stroke);
+    background:#fff;color:#0f172a;cursor:pointer;box-shadow:0 1px 2px rgba(15,23,42,.05)
+  }
+  .cotz-btn:hover{background:#f8fafc}
+  .cotz-badge{
+    position:absolute;right:-4px;top:-4px;min-width:18px;height:18px;padding:0 5px;
+    display:none;place-items:center;background:#16a34a;color:#fff;font-size:11px;font-weight:700;
+    border-radius:999px;box-shadow:0 6px 16px rgba(16,24,40,.18)
+  }
+  .cotz-badge.show{display:grid}
+
+  /* Flechas de los summary */
+  details summary.item {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    padding-right: 24px;
+  }
+  details summary.item::after {
+    font-family:"Font Awesome 6 Free";
+    font-weight:900;
+    content:"\f054"; /* → */
+    font-size:13px;
+    position: absolute;
+    right: 0;
+    transition: transform .2s;
+  }
+  details[open] summary.item::after {
+    content:"\f078"; /* ↓ */
+  }
+
+  /* === Soporte al fondo === */
+  .sidebar {
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    height:100vh;
+  }
+  .support-box {
+    padding:16px;
+    text-align:center;
+  }
+  .btn-support {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    background:#1e293b;
+    color:#38bdf8;
+    border:1px solid #334155;
+    padding:8px;
+    border-radius:10px;
+    text-decoration:none;
+    font-weight:500;
+    font-size:13px;
+    transition:.2s;
+  }
+  .btn-support:hover {
+    background:#38bdf8;
+    color:#0f172a;
+  }
+  .version-text {
+    margin-top:8px;
+    font-size:11px;
+    color:#94a3b8;
+    line-height:1.3;
+    text-align:center;
+  }
+
+  .sidebar .brand {padding:20px;text-align:center;}
+  .sidebar .brand-separator {height:1px;background:#334155;margin:10px 16px 20px;opacity:0.4;}
+
+  /* ===== CORTINA DE CARGA ===== */
+  #loaderOverlay {
+    position: fixed;top:0;left:0;width:100%;height:100%;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    display:flex;align-items:center;justify-content:center;
+    z-index:9999;transition:opacity 0.5s ease;opacity:1;visibility:visible;
+  }
+  #loaderOverlay.hidden {opacity:0;visibility:hidden;}
+  .loader {
+    width:60px;height:60px;border:4px solid rgba(255,255,255,0.2);
+    border-top:4px solid #38bdf8;border-radius:50%;animation:spin 1s linear infinite;
+  }
+  @keyframes spin {to { transform:rotate(360deg); }}
+
+  /* ===== User dropdown ===== */
+  .usercard {
+    display:flex;align-items:center;gap:10px;
+    background:#f8fafc;padding:6px 12px;border-radius:12px;
+    cursor:pointer;position:relative;
+  }
+  .usercard .avatar {width:36px;height:36px;border-radius:50%;background:#cbd5e1;}
+  .usercard i.fa-chevron-down {font-size:12px;margin-left:6px;color:#64748b;transition:transform .2s;}
+  .usercard .dropdown {
+    position:absolute;top:calc(100% + 6px);right:0;
+    background:#fff;border:1px solid #e2e8f0;border-radius:10px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.08);
+    display:none;flex-direction:column;min-width:180px;z-index:999;
+  }
+  .usercard .dropdown a {
+    padding:10px 14px;text-decoration:none;color:#1e293b;
+    font-size:14px;display:flex;align-items:center;gap:8px;transition:.2s;
+  }
+  .usercard .dropdown a:hover {background:#f1f5f9;color:#0ea5e9;}
+  .usercard.open i.fa-chevron-down {transform:rotate(180deg);}
+  .usercard.open .dropdown {display:flex;}
+
+  /* ===== Acciones rápidas ===== */
+  .quick {
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    flex:1;
+    gap:10px;
+    position:relative;
+  }
+  .quick .plus{
+    background:#0ea5e9;color:#fff;border:none;
+    border-radius:50%;width:36px;height:36px;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;font-size:18px;
+  }
+  .quick .plus:hover{background:#0284c7;}
+  .quick-input{
+    padding:10px 16px;
+    border:1px solid #d1d5db;
+    border-radius:20px;
+    width:240px;
+    cursor:pointer;
+    background:#fff;
+  }
+  .quick-input:focus{outline:none;border-color:#0ea5e9}
+
+  .quick-menu{
+    position:absolute;
+    top:50px;
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:10px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.12);
+    width:240px;
+    display:none;
+    flex-direction:column;
+    z-index:1000;
+  }
+  .quick-menu a{
+    padding:12px 16px;
+    text-decoration:none;
+    color:#374151;
+    font-size:14px;
+    transition:background .2s;
+  }
+  .quick-menu a:hover{background:#f3f4f6;color:#111827;}
+  .cotz-wrap { position: relative; }
+
+.cart-dropdown {
+  position: absolute;
+  right: 0;
+  top: 120%;
+  width: 280px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  padding: 14px;
+  display: none;
+  z-index: 2000;
+}
+
+.cart-dropdown h4 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 6px;
+}
+
+.cart-dropdown ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.cart-dropdown li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+}
+
+
+
+</style>
+</head>
+<body>
+  <!-- Cortina de carga -->
+  <div id="loaderOverlay"><div class="loader"></div></div>
+
+  <aside class="sidebar">
+    <div>
+      <div class="brand">
+  <img src="{{ url_for('static', filename='uploads/logo.png') }}" alt="Logo" class="logo-img">
+</div>
+
+<style>
+.logo-img {
+  max-height: 50px;
+  object-fit: contain;
+}
+</style>
+
+      <div class="brand-separator"></div>
+
+      <nav class="menu">
+        
+        <a href="/dashboard" class="item"><i class="fa-solid fa-house fa-fw"></i> Dashboard</a>
+
+        {% if is_installed('clientes') %}
+        <details {% if request.path.startswith('/clientes') %}open{% endif %}>
+          <summary class="item"><i class="fa-solid fa-users fa-fw"></i> Clientes</summary>
+          <a href="/clientes" class="sub"><i class="fa-solid fa-list fa-fw"></i> Listado</a>
+        </details>
+        {% endif %}
+        
+        <details {% if request.path.startswith('/inventario') %}open{% endif %}>
+          <summary class="item"><i class="fa-solid fa-box-archive fa-fw"></i> Inventario</summary>
+          <a class="sub" href="/inventario"><i class="fa-solid fa-list fa-fw"></i> Listado</a>
+        </details>
+         <details {% if request.path.startswith('/ventas') or request.path.startswith('/cotizador') %}open{% endif %}>
+          <summary class="item"><i class="fa-solid fa-receipt fa-fw"></i> Ventas</summary>
+          <a class="sub" href="/cotizaciones"><i class="fa-solid fa-file-invoice fa-fw"></i> Cotizaciones</a>
+          <a class="sub" href="/pedidos"><i class="fa-solid fa-file-invoice fa-fw"></i> Pedidos</a>
+        </details>
+        
+<!-- Marketplace -->
+<a href="/marketplace"
+   class="item {% if request.path.startswith('/marketplace') %}active{% endif %}">
+  <i class="fa-solid fa-shop fa-fw"></i> Marketplace
+</a>
+
+
+        <details {% if request.path.startswith('/configuracion') %}open{% endif %}>
+          <summary class="item"><i class="fa-solid fa-gear fa-fw"></i> Configuración</summary>
+          <a href="/configuracion/empresa" class="sub"><i class="fa-solid fa-building fa-fw"></i> Datos empresa</a>
+          <a class="sub" href="/usuarios"><i class="fa-solid fa-user-gear fa-fw"></i> Usuarios</a>
+          <a class="sub" href="/configuracion/ventas"><i class="fa-solid fa-sliders fa-fw"></i> Conf Ventas</a>
+        </details>
+        <a href="/logout" class="item"><i class="fa-solid fa-right-from-bracket fa-fw"></i> Cerrar sesión</a>
+      </nav>
+    </div>
+
+    <div class="support-box">
+      <a href="/soporte" class="btn-support"><i class="fa-solid fa-headset"></i> Soporte</a>
+      <div class="version-text">
+        Software construido por <br><strong>Cebra Digital</strong><br>Versión 1.0
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="hamb" aria-label="Menú"><i class="fa-solid fa-bars"></i></button>
+
+      <div class="quick">
+        <button class="plus" aria-label="Acción rápida" onclick="toggleQuickMenu()"><i class="fa-solid fa-plus"></i></button>
+        <input class="quick-input" placeholder="Buscar una acción rápida…" onclick="toggleQuickMenu()" readonly>
+        <div class="quick-menu" id="quickMenu">
+          <a href="/cotizaciones/nueva">➕ Crear cotización nueva</a>
+          <a href="/pedidos/nuevo">📝 Crear nuevo pedido</a>
+        </div>
+      </div>
+      
+    <div class="cotz-wrap">
+  <button class="cotz-btn" id="btnCotizador" title="Ver cotizador">
+    <i class="fa-solid fa-cart-shopping"></i>
+    <span class="cotz-badge" id="cotizadorCount">0</span>
+  </button>
+
+  <!-- Mini dropdown cotizador -->
+  <div class="cart-dropdown" id="cartDropdown">
+    <h4>Cotizador</h4>
+    <ul id="cartList">
+      <li><span>Producto A</span><span>$12.000</span></li>
+      <li><span>Producto B</span><span>$8.000</span></li>
+    </ul>
+    <div class="cart-footer">
+      <strong>Total: $20.000</strong>
+      <a href="/cotizador" class="btn primary full">Ir al cotizador</a>
+    </div>
+  </div>
+</div>
+
+
+     
+
+      <!-- User dropdown -->
+      <div class="usercard" id="userMenu">
+        <div class="avatar"></div>
+        <div>
+          <div class="welcome">Bienvenid@ {{ user }}</div>
+          <div class="empresa">Empresa: AutoVidrios</div>
+        </div>
+        <i class="fa-solid fa-chevron-down"></i>
+        <div class="dropdown" id="userDropdown">
+          <a href="/perfil"><i class="fa-regular fa-id-badge"></i> Ver perfil</a>
+          <a href="/perfil/editar"><i class="fa-solid fa-user-pen"></i> Editar perfil</a>
+          <a href="/roles"><i class="fa-solid fa-user-shield"></i> Roles</a>
+          <a href="/logout"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">{% block content %}{% endblock %}</main>
+  </div>
+
+  
+
+<script>
+  // menú lateral
+  document.querySelector('.hamb')?.addEventListener('click',()=>{document.body.classList.toggle('nav-open');});
+
+  // cortina de carga
+  const loader = document.getElementById('loaderOverlay');
+  window.addEventListener("load", () => { loader.classList.add("hidden"); });
+  document.querySelectorAll("a").forEach(a => {
+    a.addEventListener("click", e => {
+      const href = a.getAttribute("href");
+      if (href && !href.startsWith("#") && !href.startsWith("javascript")) {
+        e.preventDefault();
+        loader.classList.remove("hidden");
+        setTimeout(() => { window.location = href; }, 300);
+      }
+    });
+  });
+
+  // user dropdown
+  const userMenu = document.getElementById("userMenu");
+  userMenu.addEventListener("click", e => {
+    userMenu.classList.toggle("open");
+    e.stopPropagation();
+  });
+  document.addEventListener("click", e => {
+    if(!userMenu.contains(e.target)) userMenu.classList.remove("open");
+  });
+
+  // quick menu
+  function toggleQuickMenu(){
+    const menu = document.getElementById("quickMenu");
+    menu.style.display = (menu.style.display==="flex") ? "none" : "flex";
+  }
+  document.addEventListener("click", e=>{
+    const menu = document.getElementById("quickMenu");
+    if(!e.target.closest(".quick")) menu.style.display="none";
+  });
+</script>
+
+
+<script>
+(() => {
+  const btn = document.querySelector('.hamb'); 
+  if (!btn) return;
+  const body = document.body;
+
+  // === Leer estado guardado ===
+  const savedState = localStorage.getItem('sidebarState');
+  if (window.innerWidth >= 1024) {
+    // escritorio
+    if (savedState === 'collapsed') body.classList.add('nav-collapsed');
+  } else {
+    // mobile
+    if (savedState === 'open') body.classList.add('nav-open');
+  }
+
+  // === Toggle ===
+  const toggle = () => { 
+    if (window.innerWidth >= 1024) { 
+      body.classList.toggle('nav-collapsed'); 
+      localStorage.setItem('sidebarState', body.classList.contains('nav-collapsed') ? 'collapsed' : 'expanded');
+    } else { 
+      body.classList.toggle('nav-open'); 
+      localStorage.setItem('sidebarState', body.classList.contains('nav-open') ? 'open' : 'closed');
+    } 
+  };
+
+  const closeMobile = () => {
+    body.classList.remove('nav-open');
+    localStorage.setItem('sidebarState', 'closed');
+  };
+
+  btn.addEventListener('click', toggle);
+  window.addEventListener('resize', () => { 
+    if (window.innerWidth >= 1024) closeMobile(); 
+  });
+})();
+</script>
+
+<script>
+(function(){
+  const badge = document.getElementById('cotizadorCount');
+  function getCotizadorCount(){
+    try{
+      const arr = JSON.parse(localStorage.getItem('cotizador_items') || '[]');
+      return Array.isArray(arr) ? arr.reduce((s,it)=> s + (Number(it.qty)||1), 0) : 0;
+    }catch(e){ return 0; }
+  }
+  function renderCount(){
+    if(!badge) return;
+    const n = getCotizadorCount();
+    badge.textContent = n;
+    if(n>0) badge.classList.add('show'); else badge.classList.remove('show');
+  }
+  window.refreshCotizadorCount = renderCount;
+  renderCount();
+  window.addEventListener('storage',(e)=>{ if(e.key==='cotizador_items') renderCount(); });
+  document.getElementById('btnCotizador')?.addEventListener('click',()=>{ window.location='/cotizador' });
+})();
+</script>
+
+<script>
+const btnCotizador = document.getElementById('btnCotizador');
+const cartDropdown = document.getElementById('cartDropdown');
+
+btnCotizador.addEventListener('mouseenter', () => {
+  cartDropdown.style.display = 'block';
+});
+
+btnCotizador.addEventListener('mouseleave', () => {
+  setTimeout(() => {
+    if (!cartDropdown.matches(':hover')) {
+      cartDropdown.style.display = 'none';
+    }
+  }, 200);
+});
+
+cartDropdown.addEventListener('mouseleave', () => {
+  cartDropdown.style.display = 'none';
+});
+</script>
+
+<script>
+// Desactivar selección de texto
+document.addEventListener('selectstart', e => e.preventDefault());
+
+// Desactivar copiar / pegar / cortar
+['copy','paste','cut','contextmenu'].forEach(evt => {
+  document.addEventListener(evt, e => e.preventDefault());
+});
+</script>
+
+
+</body>
+</html>
+
+

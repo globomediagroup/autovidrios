@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Marketplace · Adily{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2 class="titulo">app<span class="brand-dot">marketplace</span></h2>
+    <form method="get" class="filtros">
+      <input name="q" value="{{ q or '' }}" placeholder="Buscar en el mercado" class="inp">
+      <select name="cat" class="sel">
+        <option value="">Todas las categorías</option>
+        {% for c in cats %}
+          <option value="{{ c|lower }}" {% if cat==c|lower %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn">Buscar</button>
+    </form>
+  </div>
+
+  <div class="grid">
+    {% for a in apps %}
+    <div class="tile">
+      <div class="tile-hero">
+        <img src="{{ a.icono or '/static/sprites/box.svg' }}" alt="{{ a.nombre }}" loading="lazy">
+      </div>
+      <div class="tile-body">
+        <h3>{{ a.nombre }}</h3>
+        <p class="muted">{{ a.descripcion }}</p>
+        <div class="meta">+{{ a.descargas }} descargas · {{ a.categoria }}</div>
+      </div>
+      <div class="tile-actions">
+        <a href="#" class="link" data-ver="{{ a.slug }}">Ver más</a>
+       <button
+  class="state-btn {{ 'installed' if a.instalada else 'uninstalled' }}"
+  data-slug="{{ a.slug }}">
+  {{ 'Instalada' if a.instalada else 'Instalar' }}
+</button>
+
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+document.querySelectorAll(".install-btn").forEach(btn=>{
+  btn.addEventListener("click", async (e)=>{
+    e.preventDefault();
+    const slug = btn.dataset.slug;
+    const r = await fetch(`/marketplace/toggle/${slug}`, {method:"POST"});
+    const j = await r.json();
+    if(j.ok){
+      btn.textContent = (j.estado === "instalada") ? "Instalada" : "Instalar";
+    } else {
+      alert("Error al actualizar.");
+    }
+  });
+});
+</script>
+
+<style>
+    .state-btn{border-radius:12px;padding:10px 14px;font-weight:500;cursor:pointer;border:1px solid transparent}
+.state-btn.installed{background:#10b981;color:#fff;border-color:#059669}     /* verde */
+.state-btn.installed:hover{filter:brightness(.95)}
+.state-btn.uninstalled{background:#ef4444;color:#fff;border-color:#dc2626}  /* rojo */
+.state-btn.uninstalled:hover{filter:brightness(.95)}
+
+.card{background:#fff;border-radius:14px;padding:16px}
+.card-header{display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid #eee;padding-bottom:10px;margin-bottom:12px}
+.titulo{font-size:20px;margin:0}.brand-dot{color:#6c5ce7}
+.filtros{display:flex;gap:8px}
+.inp,.sel{border:1px solid #e1e1e1;border-radius:10px;padding:10px 12px}
+.btn,.btn-ghost{border-radius:12px;padding:10px 14px;border:1px solid #e1e1e1;background:#f7f7f9;cursor:pointer}
+.btn-ghost{background:transparent}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.tile{border:1px solid #eee;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.tile-hero img{width:64px;height:64px}
+.tile-body h3{margin:0 0 4px 0}
+.muted{color:#6b7280;font-size:.92rem;margin:0}
+.meta{font-size:.85rem;color:#9aa0a6}
+.link{font-size:.9rem}
+@media(max-width:1100px){.grid{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+</style>
+
+
+<script>
+document.querySelectorAll(".install-btn").forEach(btn=>{
+  btn.addEventListener("click", async (e)=>{
+    e.preventDefault();
+    const slug = btn.dataset.slug;
+    const r = await fetch(`/marketplace/toggle/${slug}`, {method:"POST"});
+    const j = await r.json();
+    if(j.ok){
+      btn.textContent = (j.estado === "instalada") ? "Instalada" : "Instalar";
+      // refresca toda la UI para que el menú y las rutas reflejen el cambio
+      location.reload();
+    } else {
+      alert("Error al actualizar.");
+    }
+  });
+});
+</script>
+
+<script>
+document.querySelectorAll(".state-btn").forEach(btn=>{
+  btn.addEventListener("click", async (e)=>{
+    e.preventDefault();
+    const slug = btn.dataset.slug;
+    const r = await fetch(`/marketplace/toggle/${slug}`, {method:"POST"});
+    const j = await r.json();
+    if(!j.ok) return alert("Error al actualizar.");
+
+    const installed = (j.estado === "instalada");
+    btn.textContent = installed ? "Instalada" : "Instalar";
+    btn.classList.toggle("installed", installed);
+    btn.classList.toggle("uninstalled", !installed);
+
+    // refrescar para actualizar el sidebar y permisos
+    location.reload();
+  });
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,708 @@
+{% extends "base.html" %}
+{% set title = "Artículos" %}
+
+{% block content %}
+<section class="section">
+  <h1 class="h1"><i class="fa-solid fa-box-archive"></i> Artículos</h1>
+
+  <div class="toolbar">
+    <div class="search">
+      <input id="qArtInput" placeholder="Buscar por SKU, nombre o compatibilidad…" autocomplete="off">
+    </div>
+
+    <!-- Botón filtros avanzados -->
+    <button class="btn ghost" id="toggleFilters" style="margin-left:8px;">
+      <i class="fa-solid fa-sliders"></i> Filtros avanzados
+    </button>
+
+    <!-- Panel colapsable de filtros -->
+    <div class="filters collapse" id="advancedFilters">
+      <select id="fCategoria" class="pill-input">
+        <option value="">Categoría</option>
+        {% for x in cat %}<option>{{ x }}</option>{% endfor %}
+      </select>
+      <select id="fMarca" class="pill-input">
+        <option value="">Marca</option>
+        {% for x in marca %}<option>{{ x }}</option>{% endfor %}
+      </select>
+      <select id="fModelo" class="pill-input">
+        <option value="">Modelo</option>
+        {% for x in modelo %}<option>{{ x }}</option>{% endfor %}
+      </select>
+      <select id="fVersion" class="pill-input">
+        <option value="">Versión</option>
+        {% for x in (version or []) %}<option>{{ x }}</option>{% endfor %}
+      </select>
+      <select id="fAnio" class="pill-input">
+        <option value="">Año</option>
+        {% for x in anio %}<option>{{ x }}</option>{% endfor %}
+      </select>
+      <select id="fBodega" class="pill-input">
+  <option value="">Bodega</option>
+  {% for nombre in bodegas %}
+    <option value="{{ nombre }}">{{ nombre }}</option>
+  {% endfor %}
+</select>
+
+
+    </div>
+
+    <div class="actions">
+      <a class="btn dark" id="btnExportArt" href="{{ url_for('inventario_export') }}">
+        <i class="fa-solid fa-file-export"></i> Exportar
+      </a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Listado de artículos</div>
+    <div class="table-wrap">
+      <table class="table" id="tablaArticulos">
+        <thead>
+          <tr>
+            <th class="sortable" data-key="codigo">Código</th>
+            <th class="sortable" data-key="descripcion">Descripción</th>
+            <th class="sortable" data-key="categoria">Categoría</th>
+            <th class="sortable" data-key="marca">Marca</th>
+            <th class="sortable" data-key="modelo">Modelo</th>
+            <th class="sortable" data-key="version">Versión</th>
+            <th class="sortable" data-key="anio">Año</th>
+            <th class="sortable" data-key="precio">Precio neto</th>
+            <th class="stock sortable" data-key="stock">Stock total</th>
+            <th class="actions">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for a in articulos %}
+          <tr data-id="{{ a.id }}">
+            <td>{{ a.cod_int }}</td>
+            <td>{{ a.descripcion }}</td>
+            <td>{{ a.categoria }}</td>
+            <td>{{ a.marca }}</td>
+            <td>{{ a.modelo }}</td>
+            <td>{{ a.version }}</td>
+            <td>{{ a.anio }}</td>
+            <td>${{ "{:,}".format(a.precio_venta or 0).replace(',', '.') }}</td>
+
+            <td class="stock">{{ a.stock_total }}</td>
+            <td class="actions-cell" style="position:relative">
+              <button class="icon action-trigger" aria-label="Acciones"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Modal Ficha Técnica ===== -->
+<!-- ===== Modal Ficha Técnica (nuevo diseño) ===== -->
+<div class="modal" id="modalFicha" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 id="ft_title">Ficha técnica</h3>
+      <button class="modal-close" id="ft_close" aria-label="Cerrar">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Badges -->
+      <div style="display:flex; gap:10px; align-items:center; margin-bottom:14px">
+        <span id="ft_codigos" class="p-badge"></span>
+        <span id="ft_estado" class="p-badge"></span>
+        <span id="ft_precio" class="p-badge price"></span>
+      </div>
+
+      <!-- Imágenes -->
+      <div class="ft-section">
+        <div class="ft-label">Imágenes</div>
+        <div id="ft_imgs" style="display:flex; gap:12px; overflow:auto"></div>
+      </div>
+
+      <!-- Grilla de datos -->
+      <div class="ft-grid">
+  <div class="ft-card">
+    <div class="ft-label">Categoría</div>
+    <div class="ft-value" id="ft_categoria">—</div>
+  </div>
+  <div class="ft-card">
+    <div class="ft-label">Subcategoría</div>
+    <div class="ft-value" id="ft_subcategoria">—</div>
+  </div>
+  <div class="ft-card">
+    <div class="ft-label">Marca</div>
+    <div class="ft-value" id="ft_marca">—</div>
+  </div>
+  <div class="ft-card">
+    <div class="ft-label">Modelo</div>
+    <div class="ft-value" id="ft_modelo">—</div>
+  </div>
+  <div class="ft-card">
+    <div class="ft-label">Año</div>
+    <div class="ft-value" id="ft_anio">—</div>
+  </div>
+  <div class="ft-card">
+    <div class="ft-label">Compatibilidad</div>
+    <div class="ft-value" id="ft_compat">—</div>
+  </div>
+</div>
+
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button class="btn dark" id="ft_pdf">
+          <i class="fa-solid fa-file-pdf"></i> Exportar PDF
+        </button>
+        <button class="btn secondary" id="ft_add">
+          <i class="fa-solid fa-cart-plus"></i> Agregar al cotizador
+        </button>
+        <button class="btn primary" id="ft_ok">
+          <i class="fa-solid fa-check"></i> Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== Modal Inventario por Bodega ===== -->
+<div class="modal" id="modalBodegas" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 id="bod_title">Inventario por bodega</h3>
+      <button class="modal-close" id="bod_close" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="p-label">Artículo</div>
+      <div id="bod_art" class="p-value" style="margin-bottom:8px">—</div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table class="table" id="tablaBodegas">
+  <thead><tr><th>Bodega</th><th>Stock</th></tr></thead>
+  <tbody></tbody>
+  <tfoot>
+    <tr class="total-row"><th>Total</th><th id="bod_total">0</th></tr>
+  </tfoot>
+</table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn primary" id="bod_ok"><i class="fa-solid fa-check"></i> Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  
+</div>
+
+<style>
+  /* filtros avanzados */
+.collapse {
+  display: none;
+  flex-wrap: wrap;           /* 👈 permite que los selects bajen de línea */
+  margin-left: 12px;
+  gap: 10px;
+  align-items: center;
+  max-width: 100%;           /* 👈 no se sale del toolbar */
+}
+
+.collapse.show {
+  display: flex;
+}
+
+/* para que los select no crezcan infinitos */
+.collapse select {
+  min-width: 160px;          /* tamaño mínimo legible */
+  flex: 1 1 auto;            /* se ajustan de forma fluida */
+}
+
+  .pill-input{height:44px;padding:0 38px 0 14px;border:1px solid var(--stroke);border-radius:999px;background:#fff;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20'%3E%3Cpath fill='%236b7280' d='M5.3 7.3a1 1 0 011.4 0L10 10.6l3.3-3.3a1 1 0 111.4 1.4l-4 4a1 1 0 01-1.4 0l-4-4a1 1 0 010-1.4z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+  .p-badge{font-size:12px;padding:4px 8px;border:1px solid #e5e7eb;border-radius:999px;background:#f9fafb}
+  .p-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .p-span{grid-column:1 / -1}
+  @media (max-width:900px){.p-grid{grid-template-columns:1fr}}
+  .ft-carousel img{height:84px;border-radius:10px;border:1px solid #e5e7eb}
+
+  /* evitar cierre por click fuera en estos modales */
+  #modalFicha, #modalBodegas {pointer-events:none}
+  #modalFicha.show .modal-dialog, #modalBodegas.show .modal-dialog {pointer-events:auto}
+
+  /* centrados */
+  #tablaArticulos th.stock, #tablaArticulos td.stock,
+  #tablaArticulos th.actions, #tablaArticulos td.actions-cell{ text-align:center; }
+
+  /* filtros avanzados */
+  .collapse{display:none; margin-left:12px; gap:10px; align-items:center;}
+  .collapse.show{display:flex;}
+
+  /* ordenamiento visual */
+  th.sortable{cursor:pointer; position:relative; user-select:none;}
+  th.sortable:after{content:''; position:absolute; right:10px; top:50%; width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; transform:translateY(-50%); opacity:.35}
+  th.sortable.sort-asc:after{border-bottom:6px solid #111827}
+  th.sortable.sort-desc:after{border-top:6px solid #111827}
+
+  /* toast */
+  .toast{
+    position:fixed; right:16px; bottom:16px;
+    background:#16a34a; color:#fff;
+    padding:10px 14px; border-radius:12px;
+    box-shadow:0 10px 30px rgba(16,24,40,.18);
+    opacity:0; transform:translateY(8px);
+    transition:opacity .2s ease, transform .2s ease;
+    z-index:3000;
+  }
+  .toast.show{opacity:1; transform:none}
+  /* ===== Mejor UI para ficha técnica ===== */
+.modal-body {
+  font-family: 'Poppins', sans-serif;
+}
+
+.ft-section {
+  margin-bottom: 18px;
+}
+
+.ft-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280; /* gris medio */
+  margin-bottom: 4px;
+  display: block;
+}
+
+.ft-value {
+  font-size: 15px;
+  color: #111827; /* casi negro */
+  background: #f9fafb;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.ft-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media(max-width:800px){ .ft-grid{ grid-template-columns:1fr; } }
+
+.ft-card {
+  background: #f9fafb;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+.ft-card strong {
+  display: block;
+  font-size: 16px;
+  color: #111827;
+}
+
+#ft_imgs img {
+  height: 120px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  object-fit: cover;
+}
+/* más espacio debajo de la grilla de datos */
+.ft-grid {
+  margin-bottom: 50px; /* antes era solo gap */
+}
+#tablaBodegas tfoot .total-row th{
+  border-top:1px solid var(--stroke);
+  font-weight:700;
+}
+
+</style>
+
+<script>
+  // cache
+  const ART_LIST = {{ articulos|tojson }};
+  const ART_MAP = new Map(ART_LIST.map(a => [String(a.id), a]));
+
+  // ====== Filtros/Orden/Export ======
+  (function(){
+    const q = document.getElementById('qArtInput');
+    const table = document.getElementById('tablaArticulos');
+    const tbody = table.tBodies[0];
+    const baseExport = "{{ url_for('inventario_export') }}";
+
+    const f = id => document.getElementById(id);
+    const fCat=f('fCategoria'),
+      fMar=f('fMarca'),
+      fMod=f('fModelo'),
+      fVer=f('fVersion'),
+      fAni=f('fAnio'),
+      fBod=f('fBodega');   // 👈 este reemplaza al fEst
+
+
+
+    // toggle filtros avanzados
+    const filters = document.getElementById('advancedFilters');
+    document.getElementById('toggleFilters')?.addEventListener('click',()=>filters.classList.toggle('show'));
+
+    const norm = s => (s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    const yearStart = s => { const m = String(s||'').match(/\d{4}/); return m? parseInt(m[0],10) : 0; };
+
+    // estado de orden
+    let sortKey = null; // 'codigo','descripcion','categoria','marca','modelo','version','anio','precio','stock'
+    let sortDir = 'asc';
+
+    function valueFor(a, key){
+      switch(key){
+        case 'codigo': return a.cod_int || '';
+        case 'descripcion': return a.descripcion || '';
+        case 'categoria': return a.categoria || '';
+        case 'marca': return a.marca || '';
+        case 'modelo': return a.modelo || '';
+        case 'version': return a.version || '';
+        case 'anio': return yearStart(a.anio);
+        case 'precio': return Number(a.precio_venta||0);
+        case 'stock': return Number(a.stock_total||0);
+        default: return '';
+      }
+    }
+
+    function apply(){
+  const qv = norm(q.value.trim());
+  [...tbody.rows].forEach(tr=>{
+    const a = ART_MAP.get(String(tr.dataset.id)) || {};
+    const blob = norm([a.cod_int,a.descripcion,a.compatibilidad,a.marca,a.modelo,a.version,a.anio].join(' '));
+    const hitQ = !qv || blob.includes(qv);
+
+    // stock por bodega
+    let hitBod = true;
+    if(fBod.value){
+      const stockBod = (a.inventario && a.inventario.bodegas && a.inventario.bodegas[fBod.value]) || 0;
+      hitBod = stockBod > 0;
+      // opcional: mostrar stock de esa bodega en la tabla
+      if(hitBod) tr.querySelector(".stock").textContent = stockBod;
+      else tr.querySelector(".stock").textContent = 0;
+    } else {
+      tr.querySelector(".stock").textContent = a.stock_total || 0;
+    }
+
+    const hit = hitQ
+      && (!fCat.value || a.categoria===fCat.value)
+      && (!fMar.value || a.marca===fMar.value)
+      && (!fMod.value || a.modelo===fMod.value)
+      && (!fVer.value || (a.version||'')===fVer.value)
+      && (!fAni.value || a.anio===fAni.value)
+      && hitBod;
+
+    tr.style.display = hit ? '' : 'none';
+
+
+// --- stock según bodega ---
+// --- stock según bodega ---
+const tdStock = tr.querySelector("td.stock");
+if (tdStock){
+  if(fBod.value && a.inventario && a.inventario.bodegas){
+    const stockBod = a.inventario.bodegas[fBod.value] || 0;
+    tdStock.textContent = `${stockBod} - ${a.stock_total || 0}`;
+  } else {
+    tdStock.textContent = a.stock_total || 0;
+  }
+}
+
+
+      });
+      sortRows(); // mantener orden luego de filtrar
+      updateExportHref();
+    }
+
+    function updateExportHref(){
+      const params = new URLSearchParams();
+      if(q.value.trim()) params.set('q', q.value.trim());
+      if(fCat.value) params.set('categoria', fCat.value);
+      if(fMar.value) params.set('marca', fMar.value);
+      if(fMod.value) params.set('modelo', fMod.value);
+      if(fVer.value) params.set('version', fVer.value);
+      if(fAni.value) params.set('anio', fAni.value);
+      if(fBod.value) params.set('bodega', fBod.value);
+
+      if(sortKey){ params.set('sort', sortKey); params.set('dir', sortDir); }
+      document.getElementById('btnExportArt').href = params.toString() ? baseExport + '?' + params.toString() : baseExport;
+    }
+
+    function sortRows(){
+      if(!sortKey) return;
+      // marcas visuales
+      table.querySelectorAll('th.sortable').forEach(th=>th.classList.remove('sort-asc','sort-desc'));
+      const th = table.querySelector(`th.sortable[data-key="${sortKey}"]`);
+      if(th) th.classList.add(sortDir==='asc'?'sort-asc':'sort-desc');
+
+      const rows = [...tbody.rows].filter(r => r.style.display !== 'none');
+      rows.sort((r1,r2)=>{
+        const a1 = ART_MAP.get(String(r1.dataset.id)) || {};
+        const a2 = ART_MAP.get(String(r2.dataset.id)) || {};
+        let v1 = valueFor(a1, sortKey);
+        let v2 = valueFor(a2, sortKey);
+
+        if(typeof v1 === 'string' && typeof v2 === 'string'){
+          v1 = norm(v1); v2 = norm(v2);
+        }
+        let cmp = 0;
+        if(v1 < v2) cmp = -1;
+        else if(v1 > v2) cmp = 1;
+        return sortDir==='asc' ? cmp : -cmp;
+      });
+      // reinsertar
+      rows.forEach(r=>tbody.appendChild(r));
+    }
+
+    // listeners
+    [q,fCat,fMar,fMod,fVer,fAni,fBod].forEach(el => el.addEventListener('input', apply));
+[q,fCat,fMar,fMod,fVer,fAni,fBod].forEach(el => el.addEventListener('change', apply));
+
+    apply();
+
+    // ordenar por encabezado
+    table.querySelectorAll('th.sortable').forEach(th=>{
+      th.addEventListener('click',()=>{
+        const key = th.dataset.key;
+        if(sortKey === key){ sortDir = (sortDir==='asc' ? 'desc' : 'asc'); }
+        else { sortKey = key; sortDir = 'asc'; }
+        sortRows();
+        updateExportHref();
+      });
+    });
+  })();
+
+  // ====== Menú acciones (flotante sobre body) + Ficha + Bodegas + Cotizador ======
+  (function(){
+    const table = document.getElementById('tablaArticulos');
+
+    function closeAll(){
+      document.querySelectorAll('.actions-menu').forEach(m=>m.remove());
+      window.removeEventListener('scroll', onScrollOrResize, true);
+      window.removeEventListener('resize', onScrollOrResize, true);
+      document.removeEventListener('click', clickAway, true);
+    }
+    function onScrollOrResize(){ closeAll(); }
+    function clickAway(e){
+      const menu = document.querySelector('.actions-menu');
+      if (menu && !menu.contains(e.target)) closeAll();
+    }
+
+    function openMenuAt(trigger){
+      const menu = document.createElement('div');
+      menu.className = 'actions-menu show';
+      menu.innerHTML = `
+        <button class="am-item" data-act="ficha"><i class="fa-regular fa-file-lines"></i> Ver ficha técnica</button>
+        <button class="am-item" data-act="bodegas"><i class="fa-solid fa-warehouse"></i> Inventario por bodega</button>
+        <button class="am-item" data-act="cotizar"><i class="fa-solid fa-cart-plus"></i> Agregar al cotizador</button>
+      `;
+      document.body.appendChild(menu);
+
+      const r = trigger.getBoundingClientRect();
+      const gap = 8;
+      const mw = menu.offsetWidth;
+      const mh = menu.offsetHeight;
+
+      let x = r.right - mw;
+      let y = r.bottom + gap;
+
+      if (x < 8) x = 8;
+      if (x + mw > window.innerWidth - 8) x = window.innerWidth - mw - 8;
+      if (y + mh > window.innerHeight - 8) y = r.top - mh - gap;
+      if (y < 8) y = 8;
+
+      menu.style.left = `${x}px`;
+      menu.style.top  = `${y}px`;
+
+      setTimeout(()=>{
+        window.addEventListener('scroll', onScrollOrResize, true);
+        window.addEventListener('resize', onScrollOrResize, true);
+        document.addEventListener('click', clickAway, true);
+      },0);
+
+      return menu;
+    }
+
+    // Cotizador helpers
+    function getCotizador(){ try { return JSON.parse(localStorage.getItem('cotizador_items')||'[]'); } catch { return []; } }
+    function setCotizador(arr){ localStorage.setItem('cotizador_items', JSON.stringify(arr)); window.refreshCotizadorCount?.(); }
+    function addToCotizador(id){
+      const items = getCotizador();
+      const idx = items.findIndex(x => String(x.id) === String(id));
+      if (idx >= 0) items[idx].qty = (items[idx].qty||1) + 1;
+      else items.push({ id: String(id), qty: 1 });
+      setCotizador(items);
+    }
+    function toast(msg){
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.textContent = msg || 'Agregado';
+      document.body.appendChild(t);
+      requestAnimationFrame(()=> t.classList.add('show'));
+      setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),220); }, 2200);
+    }
+    window.__toast = toast; // para reutilizar en el modal
+
+    table.addEventListener('click', (e)=>{
+      const trigger = e.target.closest('.action-trigger');
+      if (trigger){
+        closeAll();
+        const menu = openMenuAt(trigger);
+
+        menu.addEventListener('click', (ev)=>{
+          const it = ev.target.closest('.am-item'); if(!it) return;
+          const row = trigger.closest('tr');
+          const id  = row?.dataset.id;
+
+          if (it.dataset.act==='ficha')    openFicha(id);
+          if (it.dataset.act==='bodegas')  openBodegas(id);
+          if (it.dataset.act==='cotizar')  {
+            addToCotizador(id);
+            const art = ART_MAP.get(String(id));
+            toast(`Añadido al cotizador: ${art?.cod_int || ''}`);
+          }
+          closeAll();
+        });
+        return;
+      }
+    });
+
+    // ----- Ficha técnica -----
+    const mf = document.getElementById('modalFicha');
+    const ftClose = document.getElementById('ft_close');
+    const ftOk = document.getElementById('ft_ok');
+    const ftPdf = document.getElementById('ft_pdf');
+    const ftAdd = document.getElementById('ft_add');
+    let currentFichaId = null;
+
+    function openFicha(id){
+      const a = ART_MAP.get(String(id));
+      if(!a) return;
+      currentFichaId = id;
+document.getElementById('ft_precio').textContent = 
+  a.precio_venta ? `$${a.precio_venta.toLocaleString('es-CL')}` : '-';
+
+      document.getElementById('ft_title').textContent = a.descripcion || 'Ficha técnica';
+      document.getElementById('ft_codigos').textContent = `SKU: ${a.cod_int || '—'} · Proveedor: ${a.cod_proveedor || '—'}`;
+      document.getElementById('ft_estado').textContent = a.estado || '—';
+      document.getElementById('ft_categoria').textContent = a.categoria || '—';
+      document.getElementById('ft_subcategoria').textContent = a.subcategoria || '—';
+      document.getElementById('ft_marca').textContent = a.marca || '—';
+      document.getElementById('ft_modelo').textContent = a.modelo || '—';
+      document.getElementById('ft_anio').textContent = a.anio || '—';
+      document.getElementById('ft_compat').textContent = a.compatibilidad || '—';
+
+      // imágenes
+      const imgs = document.getElementById('ft_imgs');
+imgs.innerHTML='';
+
+// si el artículo tiene imágenes en BD, usarlas; si no, mostrar ejemplo local
+const sources = (a.imagenes && a.imagenes.length) 
+  ? a.imagenes 
+  : ["{{ url_for('static', filename='sprites/parabrisas_ejemplo.jpeg') }}"];
+
+
+sources.forEach(src=>{
+  const im = document.createElement('img'); 
+  im.src = src; 
+  im.alt = a.descripcion || 'Imagen artículo';
+  imgs.appendChild(im);
+});
+
+
+      mf.classList.add('show');
+    }
+    function closeFicha(){ mf.classList.remove('show'); currentFichaId=null; }
+    ftClose.addEventListener('click', closeFicha);
+    ftOk.addEventListener('click', closeFicha);
+   // reemplaza tu ftPdf.addEventListener(...) por:
+ftPdf.onclick = (e) => {
+  if (!currentFichaId) return;
+  const url = e.shiftKey
+    ? `/articulo/${currentFichaId}/pdf?v=old`   // PDF antiguo si presionas Shift
+    : `/articulo/${currentFichaId}/pdf`;        // PDF nuevo por defecto
+  window.open(url, '_blank');
+};
+
+
+    ftAdd.addEventListener('click', ()=>{
+      if(!currentFichaId) return;
+      const art = ART_MAP.get(String(currentFichaId));
+      addToCotizador(currentFichaId);
+      (window.__toast||(()=>{}))(`Añadido al cotizador: ${art?.cod_int || ''}`);
+    });
+    mf.addEventListener('click', e=>{ if(e.target===mf) e.stopPropagation(); }, true);
+
+    // ----- Inventario por bodega -----
+    const mb = document.getElementById('modalBodegas');
+    const bodClose = document.getElementById('bod_close');
+    const bodOk = document.getElementById('bod_ok');
+    const bodTitle = document.getElementById('bod_title');
+    const bodArt = document.getElementById('bod_art');
+    const tbBody  = document.querySelector('#tablaBodegas tbody');
+const tbTotal = document.getElementById('bod_total');
+
+function openBodegas(id){
+  const a = ART_MAP.get(String(id));
+  if(!a) return;
+
+  bodTitle.textContent = 'Inventario por bodega';
+  bodArt.textContent   = `${a.cod_int} · ${a.descripcion||''}`;
+
+  tbBody.innerHTML = '';
+  tbTotal.textContent = '0';
+
+  const b = (a.inventario && a.inventario.bodegas) ? a.inventario.bodegas : {};
+  const entries = Object.keys(b).length ? Object.entries(b) : [];
+
+  let total = 0;
+  if(entries.length){
+    entries.forEach(([k,v])=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${k}</td><td>${v}</td>`;
+      tbBody.appendChild(tr);
+      total += Number(v)||0;
+    });
+  } else {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>—</td><td>—</td>`;
+    tbBody.appendChild(tr);
+    total = Number(a.stock_total)||0; // si no hay detalle, muestra total del artículo
+  }
+
+  tbTotal.textContent = total;
+  mb.classList.add('show');
+}
+
+    function closeBodegas(){
+  mb.classList.remove('show');
+}
+
+bodClose.addEventListener('click', closeBodegas);
+bodOk.addEventListener('click', closeBodegas);
+
+
+  })();
+</script>
+
+<!-- Menú de acciones flotante (no se corta) -->
+<style>
+  .actions-menu{
+    position: fixed !important;
+    z-index: 2000;
+    display:none;
+    min-width:220px; padding:8px;
+    background:rgba(255,255,255,.10);
+    backdrop-filter: blur(14px) saturate(140%);
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:14px;
+    box-shadow:0 18px 50px rgba(15,23,42,.25), inset 0 0 0 1px rgba(255,255,255,.03);
+  }
+  .actions-menu.show{display:block; animation:am-pop .12s ease}
+  @keyframes am-pop{from{transform:translateY(-4px);opacity:0} to{transform:none;opacity:1}}
+  .am-item{width:100%;display:flex;align-items:center;gap:10px;background:transparent;border:0;color:#0f172a;padding:10px 12px;border-radius:10px;cursor:pointer}
+  .am-item i{width:18px;text-align:center}
+  .am-item:hover{background:rgba(34,211,238,.12); box-shadow:inset 0 0 0 1px rgba(34,211,238,.25)}
+</style>
+{% endblock %}

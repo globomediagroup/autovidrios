@@ -1,0 +1,1 @@
+FUNC_FETCH=articulo_pdf

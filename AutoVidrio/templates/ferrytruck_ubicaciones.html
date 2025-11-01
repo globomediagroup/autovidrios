@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% set title = "Ferrytruck · Ubicaciones" %}
+
+{% block content %}
+<section class="section">
+  <h1 class="h1">Ferrytruck · Ubicaciones</h1>
+
+  <div class="toolbar">
+    <div class="search"><input id="uSearch" class="pill-input" placeholder="Buscar VIN, patente, código…" autocomplete="off"></div>
+    <div class="filters">
+      <select id="uEstado" class="pill-input">
+        <option value="">Estado</option>
+        <option value="libre">Libre</option>
+        <option value="ocupado">Ocupado</option>
+        <option value="reservado">Reservado</option>
+        <option value="salida">Salida</option>
+      </select>
+    </div>
+    <div class="actions">
+      <a id="uBtnExport" class="btn dark" href="{{ url_for('ferrytruck_export') }}"><i class="fa-solid fa-file-export fa-fw"></i> Exportar</a>
+      <button id="uBtnReset" class="btn ghost"><i class="fa-solid fa-broom"></i> Reset</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Plano de Ubicaciones</div>
+    <div id="gridUbicaciones" class="ft-grid"></div>
+    <div class="ft-legend">
+      <span><i class="dot libre"></i> Libre</span>
+      <span><i class="dot ocupado"></i> Ocupado</span>
+      <span><i class="dot reservado"></i> Reservado</span>
+      <span><i class="dot salida"></i> Salida</span>
+    </div>
+  </div>
+</section>
+
+<div class="modal" id="uModal">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 id="uTitle">Ubicación</h3>
+      <button class="modal-close" id="uClose" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form id="uForm" class="modal-body">
+      <input type="hidden" name="id">
+      <div class="grid2">
+        <div class="field"><label>Estado</label>
+          <select name="estado" required>
+            <option value="libre">Libre</option>
+            <option value="ocupado">Ocupado</option>
+            <option value="reservado">Reservado</option>
+            <option value="salida">Salida</option>
+          </select>
+        </div>
+        <div class="field"><label>Patente</label><input name="patente"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>VIN</label><input name="vin"></div>
+        <div class="field"><label>Marca / Modelo</label><input name="marca"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Color</label><input name="color"></div>
+        <div class="field"><label>Notas</label><input name="notas"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn ghost" id="uCancel">Cancelar</button>
+        <button type="submit" class="btn primary"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+:root{ --ft-libre:#10b981; --ft-ocupado:#ef4444; --ft-reservado:#f59e0b; --ft-salida:#3b82f6; }
+.ft-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;padding:14px}
+.ft-slot{border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:10px;cursor:pointer;user-select:none;display:flex;flex-direction:column;gap:6px;min-height:84px;transition:box-shadow .12s,transform .06s}
+.ft-slot:hover{box-shadow:0 6px 18px rgba(15,23,42,.12);transform:translateY(-1px)}
+.ft-top{display:flex;align-items:center;justify-content:space-between}
+.ft-code{font-weight:700;color:#0f172a}
+.ft-state{font-size:12px;padding:2px 8px;border-radius:9999px;border:1px solid #e5e7eb}
+.ft-meta{font-size:12px;color:#475569;line-height:1.25}
+.ft-legend{display:flex;gap:14px;padding:0 14px 12px;color:#334155}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.dot.libre{background:var(--ft-libre)} .dot.ocupado{background:var(--ft-ocupado)} .dot.reservado{background:var(--ft-reservado)} .dot.salida{background:var(--ft-salida)}
+.ft-slot.libre{box-shadow:inset 0 0 0 2px rgba(16,185,129,.25)}
+.ft-slot.ocupado{box-shadow:inset 0 0 0 2px rgba(239,68,68,.25)}
+.ft-slot.reservado{box-shadow:inset 0 0 0 2px rgba(245,158,11,.25)}
+.ft-slot.salida{box-shadow:inset 0 0 0 2px rgba(59,130,246,.25)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:780px){.grid2{grid-template-columns:1fr}}
+</style>
+
+<script>window._UBIS = {{ ubicaciones|tojson }};</script>
+<script>
+(function(){
+  const grid = document.getElementById('gridUbicaciones');
+  const q = document.getElementById('uSearch');
+  const fEstado = document.getElementById('uEstado');
+  const btnExport = document.getElementById('uBtnExport');
+  const btnReset = document.getElementById('uBtnReset');
+
+  const modal = document.getElementById('uModal');
+  const uForm = document.getElementById('uForm');
+  const uClose = document.getElementById('uClose');
+  const uCancel = document.getElementById('uCancel');
+  const title = document.getElementById('uTitle');
+
+  const norm = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const MAP = new Map(window._UBIS.map(u=>[u.id,u]));
+
+  function slotHTML(u){
+    const meta = u.estado==='libre' ? '—'
+      : [u.patente || u.vin || '—', u.marca || '', u.color || ''].filter(Boolean).join(' · ');
+    return `<div class="ft-slot ${u.estado}" data-id="${u.id}">
+      <div class="ft-top"><div class="ft-code">${u.codigo}</div><div class="ft-state">${u.estado}</div></div>
+      <div class="ft-meta">${meta}</div></div>`;
+  }
+
+  function render(){
+    const qv = norm(q.value.trim());
+    const ev = fEstado.value;
+    const list = Array.from(MAP.values()).filter(u=>{
+      const e = !ev || u.estado===ev;
+      const h = !qv || norm(`${u.codigo} ${u.vin} ${u.patente} ${u.marca} ${u.color} ${u.notas}`).includes(qv);
+      return e && h;
+    }).sort((a,b)=> a.fila===b.fila ? a.nro-b.nro : a.fila.localeCompare(b.fila));
+    grid.innerHTML = list.map(slotHTML).join('');
+    grid.querySelectorAll('.ft-slot').forEach(el=> el.addEventListener('click', ()=> openModal(+el.dataset.id)));
+    const base = "{{ url_for('ferrytruck_export') }}";
+    const params = []; if(q.value.trim()) params.push('q='+encodeURIComponent(q.value.trim())); if(ev) params.push('estado='+encodeURIComponent(ev));
+    btnExport.href = params.length ? `${base}?${params.join('&')}` : base;
+  }
+
+  function openModal(id){
+    const u = MAP.get(id); if(!u) return;
+    title.textContent = `Ubicación ${u.codigo}`;
+    uForm.id.value = u.id;
+    uForm.estado.value = u.estado || 'libre';
+    uForm.patente.value = u.patente || '';
+    uForm.vin.value = u.vin || '';
+    uForm.marca.value = u.marca || '';
+    uForm.color.value = u.color || '';
+    uForm.notas.value = u.notas || '';
+    modal.classList.add('show');
+  }
+  function closeModal(){ modal.classList.remove('show'); }
+  uClose.addEventListener('click', closeModal); uCancel.addEventListener('click', closeModal);
+  modal.addEventListener('click', e=>{ if(e.target===modal) closeModal(); });
+
+  uForm.addEventListener('submit', async e=>{
+    e.preventDefault();
+    const id = +uForm.id.value;
+    const payload = Object.fromEntries(new FormData(uForm).entries());
+    const r = await fetch(`/api/ferrytruck/ubicaciones/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const j = await r.json();
+    if(!r.ok || !j.ok){ alert(j.error||'Error'); return; }
+    MAP.set(j.ubicacion.id, j.ubicacion); closeModal(); render();
+  });
+
+  q.addEventListener('input', render);
+  fEstado.addEventListener('change', render);
+
+  btnReset.addEventListener('click', async ()=>{
+    if(!confirm('¿Resetear todas las ubicaciones a "libre"?')) return;
+    const r = await fetch('/api/ferrytruck/ubicaciones/reset',{method:'POST'});
+    const j = await r.json();
+    if(j && j.ok){
+      const rs = await fetch('/api/ferrytruck/ubicaciones'); const jj = await rs.json();
+      if(jj && jj.ok){ MAP.clear(); jj.ubicaciones.forEach(u=>MAP.set(u.id,u)); render(); }
+    }
+  });
+
+  render();
+})();
+</script>
+{% endblock %}

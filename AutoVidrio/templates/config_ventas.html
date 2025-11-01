@@ -1,0 +1,703 @@
+{% extends "base.html" %}
+{% set title = "Configuración de ventas" %}
+
+{% block content %}
+
+<section class="section">
+  <h1 class="h1">
+    <i class="fa-solid fa-sliders"></i> Configuración de ventas
+  </h1>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="pagos"><i class="fa-regular fa-credit-card"></i> Condiciones de pago</button>
+    <button class="tab" data-tab="entrega"><i class="fa-solid fa-truck"></i> Métodos de entrega</button>
+    <button class="tab" data-tab="estados"><i class="fa-solid fa-rectangle-list"></i> Estados</button>
+    <button class="tab" data-tab="bodegas"><i class="fa-solid fa-warehouse"></i> Bodegas / Sucursales</button>
+  </div>
+
+  <!-- ====== CONDICIONES DE PAGO ====== -->
+  <section id="tab-pagos" class="tab-panel show">
+    <div class="card">
+      <div class="card-title">Condiciones de pago</div>
+      <div class="q-actions">
+        <div class="left">
+          <div class="searchbar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input id="qPago" placeholder="Buscar condición por nombre..." />
+          </div>
+        </div>
+        <div class="right">
+          <button class="btn primary" id="btnNewPago"><i class="fa-solid fa-plus"></i> Nueva condición</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table q-table" id="tblPago">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th style="width:120px">Días</th>
+              <th style="width:140px">Predeterminado</th>
+              <th style="width:110px">Activo</th>
+              <th style="width:100px">Orden</th>
+              <th style="width:110px" class="actions">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in pagos %}
+            <tr data-id="{{ p.id }}">
+              <td><strong>{{ p.nombre }}</strong></td>
+              <td>{{ p.dias }}</td>
+              <td>{% if p.default %}<span class="badge green">Sí</span>{% else %}<button class="btn tiny" data-action="setDefault">Hacer predet.</button>{% endif %}</td>
+              <td>{% if p.activo %}<span class="badge green">Activo</span>{% else %}<span class="badge gray">Inactivo</span>{% endif %}</td>
+              <td class="reorder">
+                <button class="icon" data-move="up" title="Subir"><i class="fa-solid fa-chevron-up"></i></button>
+                <button class="icon" data-move="down" title="Bajar"><i class="fa-solid fa-chevron-down"></i></button>
+              </td>
+              <td class="actions-cell">
+                <button class="icon edit" title="Editar"><i class="fa-regular fa-pen-to-square"></i></button>
+                <button class="icon del" title="Eliminar"><i class="fa-regular fa-trash-can"></i></button>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="text-align:center;padding:16px">Sin condiciones cargadas</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== MÉTODOS DE ENTREGA ====== -->
+  <section id="tab-entrega" class="tab-panel">
+    <div class="card">
+      <div class="card-title">Métodos de entrega</div>
+      <div class="q-actions">
+        <div class="left">
+          <div class="searchbar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input id="qEntrega" placeholder="Buscar método..." />
+          </div>
+        </div>
+        <div class="right">
+          <button class="btn primary" id="btnNewEntrega"><i class="fa-solid fa-plus"></i> Nuevo método</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table q-table" id="tblEntrega">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th style="width:140px">Tipo</th>
+              <th style="width:140px">Costo base</th>
+              <th style="width:140px">Plazo (días)</th>
+              <th style="width:140px">Predeterminado</th>
+              <th style="width:110px">Activo</th>
+              <th style="width:100px">Orden</th>
+              <th style="width:110px" class="actions">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in entregas %}
+            <tr data-id="{{ m.id }}">
+              <td><strong>{{ m.nombre }}</strong></td>
+              <td>{{ m.tipo|capitalize }}</td>
+              <td>${{ "{:,.0f}".format(m.costo) }}</td>
+              <td>{{ m.dias }}</td>
+              <td>{% if m.default %}<span class="badge green">Sí</span>{% else %}<button class="btn tiny" data-action="setDefaultEntrega">Hacer predet.</button>{% endif %}</td>
+              <td>{% if m.activo %}<span class="badge green">Activo</span>{% else %}<span class="badge gray">Inactivo</span>{% endif %}</td>
+              <td class="reorder">
+                <button class="icon" data-move="up"><i class="fa-solid fa-chevron-up"></i></button>
+                <button class="icon" data-move="down"><i class="fa-solid fa-chevron-down"></i></button>
+              </td>
+              <td class="actions-cell">
+                <button class="icon edit"><i class="fa-regular fa-pen-to-square"></i></button>
+                <button class="icon del"><i class="fa-regular fa-trash-can"></i></button>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8" style="text-align:center;padding:16px">Sin métodos cargados</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== ESTADOS ====== -->
+  <section id="tab-estados" class="tab-panel">
+    <div class="card">
+      <div class="card-title">Estados personalizables</div>
+
+      <div class="subtabs">
+        <button class="subtab active" data-g="pedidos">Pedidos</button>
+        <button class="subtab" data-g="produccion">Producción</button>
+        <button class="subtab" data-g="soporte">Soporte</button>
+
+        <div class="subtab-actions">
+          <button class="btn primary" id="btnNewEstado"><i class="fa-solid fa-plus"></i> Nuevo estado</button>
+        </div>
+      </div>
+
+      {% for grupo, items in estados.items() %}
+      <div class="estado-panel {% if loop.first %}show{% endif %}" data-grupo="{{ grupo }}">
+        <div class="table-wrap">
+          <table class="table q-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th style="width:160px">Color</th>
+                <th style="width:120px">Predeter.</th>
+                <th style="width:120px">Finaliza</th>
+                <th style="width:100px">Orden</th>
+                <th style="width:110px" class="actions">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in items %}
+              <tr data-id="{{ e.id }}">
+                <td><span class="dot" style="background: {{ e.color }};"></span> <strong>{{ e.nombre }}</strong></td>
+                <td><span class="badge" style="background: {{ e.color }}; color:#0f172a"> {{ e.color }} </span></td>
+                <td>{% if e.default %}<span class="badge green">Sí</span>{% else %}<button class="btn tiny" data-action="setDefaultEstado">Hacer predet.</button>{% endif %}</td>
+                <td>{% if e.finaliza %}<span class="badge yellow">Sí</span>{% else %}<span class="badge gray">No</span>{% endif %}</td>
+                <td class="reorder">
+                  <button class="icon" data-move="up"><i class="fa-solid fa-chevron-up"></i></button>
+                  <button class="icon" data-move="down"><i class="fa-solid fa-chevron-down"></i></button>
+                </td>
+                <td class="actions-cell">
+                  <button class="icon edit"><i class="fa-regular fa-pen-to-square"></i></button>
+                  <button class="icon del"><i class="fa-regular fa-trash-can"></i></button>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" style="text-align:center;padding:16px">Sin estados</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- ====== BODEGAS ====== -->
+  <section id="tab-bodegas" class="tab-panel">
+    <div class="card">
+      <div class="card-title">Bodegas / Sucursales</div>
+      <div class="q-actions">
+        <div class="left">
+          <div class="searchbar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input id="qBodega" placeholder="Buscar por nombre, código o dirección..." />
+          </div>
+        </div>
+        <div class="right">
+          <button class="btn primary" id="btnNewBodega"><i class="fa-solid fa-plus"></i> Nueva ubicación</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table q-table" id="tblBodega">
+          <thead>
+            <tr>
+              <th style="width:110px">Código</th>
+              <th>Nombre</th>
+              <th style="width:140px">Tipo</th>
+              <th>Dirección</th>
+              <th style="width:120px">Capacidad</th>
+              <th style="width:180px">Responsable</th>
+              <th style="width:110px">Activo</th>
+              <th style="width:100px">Orden</th>
+              <th style="width:110px" class="actions">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for b in bodegas %}
+            <tr data-id="{{ b.id }}">
+              <td><code>{{ b.codigo }}</code></td>
+              <td><strong>{{ b.nombre }}</strong></td>
+              <td>{{ b.tipo|capitalize }}</td>
+              <td>{{ b.direccion }}</td>
+              <td>{{ b.capacidad }}</td>
+              <td>{{ b.responsable }}</td>
+              <td>{% if b.activo %}<span class="badge green">Activo</span>{% else %}<span class="badge gray">Inactivo</span>{% endif %}</td>
+              <td class="reorder">
+                <button class="icon" data-move="up"><i class="fa-solid fa-chevron-up"></i></button>
+                <button class="icon" data-move="down"><i class="fa-solid fa-chevron-down"></i></button>
+              </td>
+              <td class="actions-cell">
+                <button class="icon edit"><i class="fa-regular fa-pen-to-square"></i></button>
+                <button class="icon del"><i class="fa-regular fa-trash-can"></i></button>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="9" style="text-align:center;padding:16px">Sin bodegas ni sucursales</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</section>
+
+<!-- ===== Modales ===== -->
+<div class="modal" id="modalPago">
+  <div class="dialog">
+    <header><strong id="mpTitle">Nueva condición</strong><button class="icon close" data-close>&times;</button></header>
+    <form id="frmPago" class="grid">
+      <input type="hidden" name="id">
+      <div class="row">
+        <div class="col">
+          <label>Nombre *</label>
+          <input name="nombre" class="pill-input" required>
+        </div>
+        <div class="col">
+          <label>Días *</label>
+          <input name="dias" type="number" min="0" class="pill-input" required>
+        </div>
+        <div class="col">
+          <label>Activo</label>
+          <select name="activo" class="pill-input">
+            <option value="1">Sí</option><option value="0">No</option>
+          </select>
+        </div>
+      </div>
+      <footer>
+        <button type="button" class="btn" data-close>Cancelar</button>
+        <button class="btn primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+      </footer>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="modalEntrega">
+  <div class="dialog">
+    <header><strong id="meTitle">Nuevo método</strong><button class="icon close" data-close>&times;</button></header>
+    <form id="frmEntrega" class="grid">
+      <input type="hidden" name="id">
+      <div class="row">
+        <div class="col">
+          <label>Nombre *</label>
+          <input name="nombre" class="pill-input" required>
+        </div>
+        <div class="col">
+          <label>Tipo *</label>
+          <select name="tipo" class="pill-input" required>
+            <option value="retiro">Retiro en bodega</option>
+            <option value="despacho">Despacho</option>
+          </select>
+        </div>
+        <div class="col">
+          <label>Plazo (días)</label>
+          <input name="dias" type="number" min="0" class="pill-input" value="0">
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label>Costo base</label>
+          <input name="costo" type="number" min="0" class="pill-input" value="0">
+        </div>
+        <div class="col">
+          <label>Activo</label>
+          <select name="activo" class="pill-input">
+            <option value="1">Sí</option><option value="0">No</option>
+          </select>
+        </div>
+      </div>
+      <footer>
+        <button type="button" class="btn" data-close>Cancelar</button>
+        <button class="btn primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+      </footer>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="modalEstado">
+  <div class="dialog">
+    <header><strong id="esTitle">Nuevo estado</strong><button class="icon close" data-close>&times;</button></header>
+    <form id="frmEstado" class="grid">
+      <input type="hidden" name="id">
+      <input type="hidden" name="grupo">
+      <div class="row">
+        <div class="col">
+          <label>Nombre *</label>
+          <input name="nombre" class="pill-input" required>
+        </div>
+        <div class="col">
+          <label>Color *</label>
+          <input name="color" type="color" class="pill-input" value="#22d3ee" required>
+        </div>
+        <div class="col">
+          <label>Finaliza proceso</label>
+          <select name="finaliza" class="pill-input">
+            <option value="0">No</option><option value="1">Sí</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label>Activo</label>
+          <select name="activo" class="pill-input">
+            <option value="1">Sí</option><option value="0">No</option>
+          </select>
+        </div>
+      </div>
+      <footer>
+        <button type="button" class="btn" data-close>Cancelar</button>
+        <button class="btn primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+      </footer>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="modalBodega">
+  <div class="dialog">
+    <header><strong id="boTitle">Nueva ubicación</strong><button class="icon close" data-close>&times;</button></header>
+    <form id="frmBodega" class="grid">
+      <input type="hidden" name="id">
+      <div class="row">
+        <div class="col">
+          <label>Código *</label>
+          <input name="codigo" class="pill-input" required>
+        </div>
+        <div class="col">
+          <label>Nombre *</label>
+          <input name="nombre" class="pill-input" required>
+        </div>
+        <div class="col">
+          <label>Tipo *</label>
+          <select name="tipo" class="pill-input" required>
+            <option value="bodega">Bodega</option>
+            <option value="sucursal">Sucursal</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label>Dirección</label>
+          <input name="direccion" class="pill-input">
+        </div>
+        <div class="col">
+          <label>Capacidad</label>
+          <input name="capacidad" type="number" min="0" class="pill-input" value="0">
+        </div>
+        <div class="col">
+          <label>Responsable</label>
+          <input name="responsable" class="pill-input">
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label>Activo</label>
+          <select name="activo" class="pill-input">
+            <option value="1">Sí</option><option value="0">No</option>
+          </select>
+        </div>
+      </div>
+      <footer>
+        <button type="button" class="btn" data-close>Cancelar</button>
+        <button class="btn primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+      </footer>
+    </form>
+  </div>
+</div>
+
+<style>
+.tabs{display:flex;gap:8px;margin-bottom:10px}
+.tab{border:1px solid var(--stroke);background:#fff;padding:8px 12px;border-radius:999px;cursor:pointer}
+.tab.active{background:#0ea5e9;color:#fff;border-color:#0ea5e9}
+.tab-panel{display:none}
+.tab-panel.show{display:block}
+.searchbar{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--stroke);border-radius:999px;padding:6px 12px}
+.searchbar input{border:none;outline:none;background:transparent;min-width:260px}
+.badge.gray{background:#e2e8f0;color:#334155}
+.badge.yellow{background:#fef3c7;color:#b45309}
+.subtabs{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.subtab{border:1px solid var(--stroke);background:#fff;padding:6px 10px;border-radius:999px;cursor:pointer}
+.subtab.active{background:#475569;color:#fff;border-color:#475569}
+.subtab-actions{margin-left:auto}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;border:1px solid rgba(0,0,0,.1)}
+.modal{position:fixed;inset:0;background:rgba(2,6,23,.5);display:none;align-items:center;justify-content:center;z-index:10000}
+.modal.show{display:flex}
+.modal .dialog{width:min(850px,92vw);background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(2,6,23,.25);overflow:hidden}
+.modal header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--stroke)}
+.modal footer{display:flex;gap:10px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--stroke)}
+.reorder .icon{background:#f8fafc;border:1px solid var(--stroke);border-radius:8px}
+.btn.tiny{padding:4px 8px;font-size:12px;border-radius:12px}
+
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(2,6,23,.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+.modal.show { display: flex; }
+
+.modal .dialog {
+  width: min(850px, 92vw);
+  background: #fff;
+  border-radius: 16px;
+  /* QUITAMOS EL BORDE NEGRO */
+  border: none;
+  /* SOMBRA SUAVE */
+  box-shadow: 0 8px 30px rgba(0,0,0,.2);
+  overflow: hidden;
+}
+
+.modal header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--stroke);
+}
+
+.modal footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 12px 16px;
+  border-top: 1px solid var(--stroke);
+}
+
+.modal .grid .row {
+  display: flex;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.modal .grid .col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pill-input {
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  padding: 8px 12px;
+  outline: none;
+  font-size: 14px;
+  background: #fff;
+}
+.pill-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(34,197,94,.2);
+}
+
+
+</style>
+
+<script>
+// Helpers modal
+const openM = (id)=> document.getElementById(id).classList.add('show');
+const closeM = (el)=> (el.closest('.modal')||{}).classList.remove('show');
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',e=>closeM(e.target)));
+
+// Tabs
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('show'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('show');
+  });
+});
+
+// Subtabs (estados)
+document.querySelectorAll('.subtab').forEach(s=>{
+  s.addEventListener('click',()=>{
+    document.querySelectorAll('.subtab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.estado-panel').forEach(x=>x.classList.remove('show'));
+    s.classList.add('active');
+    document.querySelector(`.estado-panel[data-grupo="${s.dataset.g}"]`).classList.add('show');
+  });
+});
+
+// ======= Pago =======
+document.getElementById('btnNewPago').addEventListener('click', ()=>{
+  const f = document.getElementById('frmPago'); f.reset(); f.id.value='';
+  document.getElementById('mpTitle').textContent='Nueva condición';
+  openM('modalPago');
+});
+document.getElementById('tblPago').addEventListener('click', async e=>{
+  const tr = e.target.closest('tr'); if(!tr) return;
+  const id = tr.dataset.id;
+  if(e.target.closest('.edit')){
+    const nombre = tr.children[0].innerText.trim();
+    const dias   = tr.children[1].innerText.trim();
+    const activo = tr.children[3].innerText.includes('Activo') ? '1' : '0';
+    const f = document.getElementById('frmPago'); f.reset();
+    f.id.value=id; f.nombre.value=nombre; f.dias.value=dias; f.activo.value=activo;
+    document.getElementById('mpTitle').textContent='Editar condición';
+    openM('modalPago');
+  }
+  if(e.target.closest('.del')){
+    if(!confirm('¿Eliminar condición?')) return;
+    const r = await fetch(`/api/conf/ventas/pago/${id}`,{method:'DELETE'});
+    const j = await r.json(); if(j.ok) tr.remove(); else alert(j.error||'Error');
+  }
+  if(e.target.closest('[data-action="setDefault"]')){
+    const r = await fetch(`/api/conf/ventas/pago/${id}/default`,{method:'POST'}); const j=await r.json();
+    if(j.ok) location.reload(); else alert(j.error||'Error');
+  }
+  if(e.target.closest('[data-move]')){
+    const dir = e.target.closest('[data-move]').dataset.move;
+    const r = await fetch(`/api/conf/ventas/pago/${id}/move`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({direction:dir})});
+    const j = await r.json(); if(j.ok) location.reload(); else alert(j.error||'Error');
+  }
+});
+document.getElementById('frmPago').addEventListener('submit', async (e)=>{
+  e.preventDefault(); const f=e.target; const data=Object.fromEntries(new FormData(f));
+  const method = data.id? 'PUT':'POST'; const url = data.id? `/api/conf/ventas/pago/${data.id}`:'/api/conf/ventas/pago';
+  const r = await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  const j = await r.json(); if(j.ok){ closeM(f); location.reload(); } else alert(j.error||'Error');
+});
+
+// ======= Entrega =======
+document.getElementById('btnNewEntrega').addEventListener('click', ()=>{
+  const f = document.getElementById('frmEntrega'); f.reset(); f.id.value='';
+  document.getElementById('meTitle').textContent='Nuevo método';
+  openM('modalEntrega');
+});
+document.getElementById('tblEntrega').addEventListener('click', async e=>{
+  const tr = e.target.closest('tr'); if(!tr) return; const id = tr.dataset.id;
+  if(e.target.closest('.edit')){
+    const f = document.getElementById('frmEntrega'); f.reset(); f.id.value=id;
+    f.nombre.value = tr.children[0].innerText.trim();
+    f.tipo.value   = tr.children[1].innerText.trim().toLowerCase();
+    f.costo.value  = tr.children[2].innerText.replace(/[^\d]/g,'')||0;
+    f.dias.value   = tr.children[3].innerText.trim()||0;
+    f.activo.value = tr.children[5].innerText.includes('Activo')?'1':'0';
+    document.getElementById('meTitle').textContent='Editar método';
+    openM('modalEntrega');
+  }
+  if(e.target.closest('.del')){
+    if(!confirm('¿Eliminar método?')) return;
+    const r=await fetch(`/api/conf/ventas/entrega/${id}`,{method:'DELETE'}); const j=await r.json();
+    if(j.ok) tr.remove(); else alert(j.error||'Error');
+  }
+  if(e.target.closest('[data-action="setDefaultEntrega"]')){
+    const r=await fetch(`/api/conf/ventas/entrega/${id}/default`,{method:'POST'}); const j=await r.json();
+    if(j.ok) location.reload(); else alert(j.error||'Error');
+  }
+  if(e.target.closest('[data-move]')){
+    const dir=e.target.closest('[data-move]').dataset.move;
+    const r=await fetch(`/api/conf/ventas/entrega/${id}/move`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({direction:dir})});
+    const j=await r.json(); if(j.ok) location.reload(); else alert(j.error||'Error');
+  }
+});
+document.getElementById('frmEntrega').addEventListener('submit', async (e)=>{
+  e.preventDefault(); const f=e.target; const data=Object.fromEntries(new FormData(f));
+  const method = data.id? 'PUT':'POST'; const url = data.id? `/api/conf/ventas/entrega/${data.id}`:'/api/conf/ventas/entrega';
+  const r = await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  const j = await r.json(); if(j.ok){ closeM(f); location.reload(); } else alert(j.error||'Error');
+});
+
+// ======= Estados =======
+document.getElementById('btnNewEstado').addEventListener('click', ()=>{
+  const activeGrupo = document.querySelector('.subtab.active')?.dataset.g || 'pedidos';
+  const f = document.getElementById('frmEstado'); f.reset(); f.id.value=''; f.grupo.value=activeGrupo;
+  document.getElementById('esTitle').textContent='Nuevo estado';
+  openM('modalEstado');
+});
+document.querySelectorAll('.estado-panel').forEach(panel=>{
+  panel.addEventListener('click', async e=>{
+    const tr = e.target.closest('tr'); if(!tr) return; const id = tr.dataset.id; const grupo = panel.dataset.grupo;
+    if(e.target.closest('.edit')){
+      const f = document.getElementById('frmEstado'); f.reset();
+      f.id.value=id; f.grupo.value=grupo;
+      const name = tr.children[0].innerText.trim();
+      const color = tr.children[1].innerText.trim().split(/\s/).pop(); // fallback
+      f.nombre.value=name; f.color.value=(color.startsWith('#')?color:'#22d3ee');
+      f.finaliza.value = tr.children[3].innerText.includes('Sí') ? '1':'0';
+      f.activo.value   = '1'; // edición rápida
+      document.getElementById('esTitle').textContent='Editar estado';
+      openM('modalEstado');
+    }
+    if(e.target.closest('.del')){
+      if(!confirm('¿Eliminar estado?')) return;
+      const r=await fetch(`/api/conf/ventas/estado/${grupo}/${id}`,{method:'DELETE'}); const j=await r.json();
+      if(j.ok) tr.remove(); else alert(j.error||'Error');
+    }
+    if(e.target.closest('[data-action="setDefaultEstado"]')){
+      const r=await fetch(`/api/conf/ventas/estado/${grupo}/${id}/default`,{method:'POST'}); const j=await r.json();
+      if(j.ok) location.reload(); else alert(j.error||'Error');
+    }
+    if(e.target.closest('[data-move]')){
+      const dir=e.target.closest('[data-move]').dataset.move;
+      const r=await fetch(`/api/conf/ventas/estado/${grupo}/${id}/move`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({direction:dir})});
+      const j=await r.json(); if(j.ok) location.reload(); else alert(j.error||'Error');
+    }
+  });
+});
+document.getElementById('frmEstado').addEventListener('submit', async (e)=>{
+  e.preventDefault(); const f=e.target; const data=Object.fromEntries(new FormData(f));
+  const method = data.id? 'PUT':'POST'; const url = data.id? `/api/conf/ventas/estado/${data.grupo}/${data.id}`:`/api/conf/ventas/estado/${data.grupo}`;
+  const r = await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  const j = await r.json(); if(j.ok){ closeM(f); location.reload(); } else alert(j.error||'Error');
+});
+
+// ======= Bodega =======
+document.getElementById('btnNewBodega').addEventListener('click', ()=>{
+  const f=document.getElementById('frmBodega'); f.reset(); f.id.value='';
+  document.getElementById('boTitle').textContent='Nueva ubicación';
+  openM('modalBodega');
+});
+document.getElementById('tblBodega').addEventListener('click', async e=>{
+  const tr=e.target.closest('tr'); if(!tr) return; const id=tr.dataset.id;
+  if(e.target.closest('.edit')){
+    const f=document.getElementById('frmBodega'); f.reset(); f.id.value=id;
+    f.codigo.value = tr.children[0].innerText.trim();
+    f.nombre.value = tr.children[1].innerText.trim();
+    f.tipo.value   = tr.children[2].innerText.trim().toLowerCase();
+    f.direccion.value = tr.children[3].innerText.trim();
+    f.capacidad.value = tr.children[4].innerText.replace(/[^\d]/g,'')||0;
+    f.responsable.value= tr.children[5].innerText.trim();
+    f.activo.value = tr.children[6].innerText.includes('Activo')?'1':'0';
+    document.getElementById('boTitle').textContent='Editar ubicación';
+    openM('modalBodega');
+  }
+  if(e.target.closest('.del')){
+    if(!confirm('¿Eliminar ubicación?')) return;
+    const r=await fetch(`/api/conf/ventas/bodega/${id}`,{method:'DELETE'}); const j=await r.json();
+    if(j.ok) tr.remove(); else alert(j.error||'Error');
+  }
+  if(e.target.closest('[data-move]')){
+    const dir=e.target.closest('[data-move]').dataset.move;
+    const r=await fetch(`/api/conf/ventas/bodega/${id}/move`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({direction:dir})});
+    const j=await r.json(); if(j.ok) location.reload(); else alert(j.error||'Error');
+  }
+});
+document.getElementById('frmBodega').addEventListener('submit', async (e)=>{
+  e.preventDefault(); const f=e.target; const data=Object.fromEntries(new FormData(f));
+  const method = data.id? 'PUT':'POST'; const url = data.id? `/api/conf/ventas/bodega/${data.id}`:'/api/conf/ventas/bodega';
+  const r = await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  const j = await r.json(); if(j.ok){ closeM(f); location.reload(); } else alert(j.error||'Error');
+});
+
+// Búsquedas client-side simples
+const filterTable = (inputId, tableId, cols=[0])=>{
+  const inp=document.getElementById(inputId), tbl=document.getElementById(tableId);
+  if(!inp||!tbl) return; inp.addEventListener('input',()=>{
+    const q=inp.value.toLowerCase();
+    tbl.querySelectorAll('tbody tr').forEach(tr=>{
+      const hit = cols.some(c => (tr.children[c]?.innerText||'').toLowerCase().includes(q));
+      tr.style.display = hit? '':'none';
+    });
+  });
+};
+filterTable('qPago','tblPago');
+filterTable('qEntrega','tblEntrega');
+filterTable('qBodega','tblBodega',[0,1,3]);
+</script>
+
+{% endblock %}

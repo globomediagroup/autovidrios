@@ -1,0 +1,20 @@
+{
+  "qa": [
+    {
+      "ts": "2025-09-20 01:29:55",
+      "q": "hola",
+      "a": "Pregunta: hola\n\nResumen basado en el código del proyecto:\n • Object.entries(inv.bodegas).map(([k,v])=>`${k}: ${v}`).join(' · ') : '-';\n      document.getElementById('ft_inv').textContent =\n        `Stock total: ${a.stock_total||0} · Costo: ${inv.costo||'-'} · Proveedor: ${inv.prov\n • val : '—'; };\n  window.openProfile = function(c){\n    setVal(clone.querySelector('#p_title'), c.razon);\n    setVal(clone.querySelector('#p_rut'), c.rut);\n    setVal(clone.querySelector('#p_giro'), c.giro);\n    setVal(clo\n\nPróximos pasos sugeridos:\n1) Si necesitas un flujo completo, di: 'explica el flujo de <módulo>'.\n2) Si quieres detalle línea a línea, di: 'explica regiones_comunas.json#0'.\n3) Para reindexar tras cambios: usa el botón 'Reindexar'.\n\nFuentes: Inventario.html#14, app.py#15, clientes.html#26, regiones_comunas.json#0, regiones_comunas.json#1, regiones_comunas.json#2"
+    },
+    {
+      "ts": "2025-09-20 01:30:15",
+      "q": "me puedes ayudar?",
+      "a": "Pregunta: me puedes ayudar?\n\nResumen basado en el código del proyecto:\n • pedidos = [\n        {\n            \"id\": 1,\n            \"numero\": 1,\n            \"cotizacion_id\": 101,\n            \"cliente\": \"Juan Pérez\",\n • # De momento uso datos de ejemplo (mock).\n\nPróximos pasos sugeridos:\n1) Si necesitas un flujo completo, di: 'explica el flujo de <módulo>'.\n2) Si quieres detalle línea a línea, di: 'explica regiones_comunas.json#0'.\n3) Para reindexar tras cambios: usa el botón 'Reindexar'.\n\nFuentes: app.py#15, app.py#16, app.py#9, regiones_comunas.json#0, regiones_comunas.json#1, regiones_comunas.json#2"
+    },
+    {
+      "ts": "2025-09-20 01:31:04",
+      "q": "explica el flujo de <módulo>'. 2)",
+      "a": "Pregunta: explica el flujo de <módulo>'. 2)\n\nResumen basado en el código del proyecto:\n[Archivo: .\\static\\regiones_comunas.json | Parte: 0]\n{\n  \"Arica y Parinacota\": [\"Arica\",\"Camarones\",\"Putre\",\"General Lagos\"],\n  \"Tarapacá\": [\"Iquique\",\"Alto Hospicio\",\"Pozo Almonte\",\"Camiña\",\"Colchane\",\"Huara\",\"Pica\"],\n  \"Antofagasta\": [\"Antofagasta\",\"Mejillones\",\"Sierra Gorda\",\"Taltal\",\"Calama\",\"Ollagüe\",\"San Pedro de Atacama\",\"Tocopilla\",\"María Elena\"],\n  \"Atacama\": [\"Copiapó\",\"Caldera\",\"Tierra Amarilla\",\"Chañaral\",\"Diego de Almagro\",\"Vallenar\",\"Freirina\",\"Huasco\",\"Alto del Carmen\"],\n  \"Coquimbo\": [\"La Serena\",\"Coquimbo\",\"Andacollo\",\"La Higuera\",\"Paiguano\",\"Vicuña\",\"Illapel\",\"Canela\",\"Los Vilos\",\"Salamanca\",\"Ovalle\",\"Combarbalá\",\"Monte Patria\",\"Punitaqui\",\"Río Hurtado\"],\n  \"Valparaíso\": [\"Valparaíso\",\"Viña del Mar\",\"Concón\",\"Quintero\",\"Puchuncaví\",\"Quilpué\",\"Villa Alemana\",\"Casablanca\",\"\n\nPróximos pasos sugeridos:\n1) Si necesitas un flujo completo, di: 'explica el flujo de <módulo>'.\n2) Si quieres detalle línea a línea, di: 'explica regiones_comunas.json#0'.\n3) Para reindexar tras cambios: usa el botón 'Reindexar'.\n\nFuentes: ai_chat.py#8, clientes.html#2, ferrytruck_ubicaciones.html#1, regiones_comunas.json#0, regiones_comunas.json#1, regiones_comunas.json#2"
+    }
+  ],
+  "feedback": []
+}

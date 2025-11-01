@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section">
+  <h1 class="h1"><i class="fa-solid fa-chart-pie"></i> Dashboard</h1>
+
+  <div class="dbuilder">
+    <!-- Constructor -->
+    <aside class="builder">
+      <h3>Crear gráfico</h3>
+
+      <label>Tipo de gráfico</label>
+      <div class="chart-types" id="typeGroup">
+        <button type="button" data-type="bar" class="chip active">Barras</button>
+        <button type="button" data-type="pie" class="chip">Torta</button>
+        <button type="button" data-type="scatter" class="chip">Dispersión</button>
+      </div>
+
+      <label style="margin-top:10px">Origen de datos</label>
+      <select id="source" class="input">
+        <option value="cotizaciones">Cotizaciones</option>
+        <option value="pedidos">Pedidos</option>
+        <option value="inventario">Inventario</option>
+        <option value="clientes">Clientes</option>
+      </select>
+
+      <div class="row">
+        <div>
+          <label>Dimensión</label>
+          <select id="dimension" class="input"></select>
+        </div>
+        <div id="metricAwrap">
+          <label>Métrica</label>
+          <select id="metricA" class="input"></select>
+        </div>
+      </div>
+
+      <div class="row" id="scatterRow" style="display:none">
+        <div>
+          <label>Métrica X</label>
+          <select id="metricX" class="input"></select>
+        </div>
+        <div>
+          <label>Métrica Y</label>
+          <select id="metricY" class="input"></select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Agregación</label>
+          <select id="agg" class="input">
+            <option value="sum">Suma</option>
+            <option value="count">Conteo</option>
+            <option value="avg">Promedio</option>
+            <option value="max">Máximo</option>
+            <option value="min">Mínimo</option>
+          </select>
+        </div>
+        <div>
+          <label>Título</label>
+          <input id="title" class="input" placeholder="(opcional)">
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="btnAdd" class="btn primary"><i class="fa-solid fa-plus"></i> Agregar al tablero</button>
+        <button id="btnClear" class="btn ghost"><i class="fa-regular fa-trash-can"></i> Limpiar tablero</button>
+      </div>
+
+      <div class="tip">
+        💡 El tablero se guarda automáticamente para tu usuario en este navegador.
+      </div>
+    </aside>
+
+    <!-- Lienzo del tablero -->
+    <div class="board" id="board"></div>
+  </div>
+</section>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+/* ===========================
+   Datos DEMO (reemplaza por API)
+   =========================== */
+const DEMO = {
+  cotizaciones: {
+    schema: {
+      dim: { mes: "Mes", vendedor: "Vendedor", estado: "Estado" },
+      met: { total: "Total ($)", cantidad: "Ítems" }
+    },
+    rows: [
+      { mes:"Ene", vendedor:"Ana", estado:"Enviada", total:120000, cantidad:12 },
+      { mes:"Feb", vendedor:"Luis", estado:"Aprobada", total:180000, cantidad:15 },
+      { mes:"Mar", vendedor:"Ana", estado:"Rechazada", total:90000, cantidad:8 },
+      { mes:"Abr", vendedor:"Sofía", estado:"Aprobada", total:250000, cantidad:21 },
+      { mes:"May", vendedor:"Luis", estado:"Enviada", total:130000, cantidad:11 },
+      { mes:"Jun", vendedor:"Sofía", estado:"Aprobada", total:310000, cantidad:25 },
+    ]
+  },
+  pedidos: {
+    schema: {
+      dim: { mes:"Mes", estado:"Estado", canal:"Canal" },
+      met: { monto:"Monto ($)", unidades:"Unidades" }
+    },
+    rows: [
+      { mes:"Ene", estado:"Producción", canal:"Web", monto:140000, unidades:10 },
+      { mes:"Feb", estado:"Entregado",  canal:"Tienda", monto:210000, unidades:16 },
+      { mes:"Mar", estado:"Pendiente",  canal:"Web", monto:90000, unidades:7 },
+      { mes:"Abr", estado:"Entregado",  canal:"Tienda", monto:260000, unidades:19 },
+      { mes:"May", estado:"Producción", canal:"Distrib", monto:170000, unidades:13 },
+      { mes:"Jun", estado:"Entregado",  canal:"Web", monto:330000, unidades:24 },
+    ]
+  },
+  inventario: {
+    schema: {
+      dim: { categoria:"Categoría", marca:"Marca" },
+      met: { stock:"Stock", costo:"Costo ($)" }
+    },
+    rows: [
+      { categoria:"Parabrisas", marca:"Toyota", stock:24, costo:129990 },
+      { categoria:"Parabrisas", marca:"Hyundai", stock:7, costo:89990 },
+      { categoria:"Lunas",      marca:"Toyota", stock:13, costo:65990 },
+      { categoria:"Lunas",      marca:"Hyundai", stock:5, costo:55990 },
+    ]
+  },
+  clientes: {
+    schema: {
+      dim: { ciudad:"Ciudad", segmento:"Segmento" },
+      met: { compras:"Compras", ticket:"Ticket Prom." }
+    },
+    rows: [
+      { ciudad:"Santiago", segmento:"Empresa", compras:12, ticket:82000 },
+      { ciudad:"Valparaíso", segmento:"Persona", compras:7, ticket:45000 },
+      { ciudad:"Concepción", segmento:"Empresa", compras:5, ticket:90000 },
+      { ciudad:"Santiago", segmento:"Persona", compras:10, ticket:38000 },
+    ]
+  }
+};
+
+/* ===========================
+   UI helpers
+   =========================== */
+const $ = (q, p=document) => p.querySelector(q);
+const $$ = (q, p=document) => [...p.querySelectorAll(q)];
+
+const stateKey = 'custom_dashboard_v1';
+const boardEl = $('#board');
+const typeGroup = $('#typeGroup');
+let currentType = 'bar';
+
+typeGroup.addEventListener('click', (e)=>{
+  const b = e.target.closest('button'); if(!b) return;
+  $$('.chip', typeGroup).forEach(c=>c.classList.remove('active'));
+  b.classList.add('active');
+  currentType = b.dataset.type;
+  $('#scatterRow').style.display = (currentType==='scatter')?'grid':'none';
+  $('#metricAwrap').style.display = (currentType==='scatter')?'none':'block';
+});
+
+const sourceSel = $('#source');
+const dimSel = $('#dimension');
+const metASel = $('#metricA');
+const metXSel = $('#metricX');
+const metYSel = $('#metricY');
+
+function fillSchema(){
+  const src = sourceSel.value;
+  const { dim, met } = DEMO[src].schema;
+
+  dimSel.innerHTML = Object.entries(dim).map(([k,v])=> `<option value="${k}">${v}</option>`).join('');
+  const metOpts = Object.entries(met).map(([k,v])=> `<option value="${k}">${v}</option>`).join('');
+  metASel.innerHTML = metOpts;
+  metXSel.innerHTML = metOpts;
+  metYSel.innerHTML = metOpts;
+}
+sourceSel.addEventListener('change', fillSchema);
+fillSchema();
+
+/* ===========================
+   Agregaciones
+   =========================== */
+function aggregate(rows, dimKey, metKey, agg){
+  const map = new Map();
+  rows.forEach(r=>{
+    const k = String(r[dimKey] ?? '—');
+    const v = Number(r[metKey] ?? 0);
+    if(!map.has(k)) map.set(k, []);
+    map.get(k).push(v);
+  });
+  const labels = [...map.keys()];
+  const values = labels.map(k=>{
+    const arr = map.get(k);
+    if(agg==='sum') return arr.reduce((s,n)=>s+n,0);
+    if(agg==='count') return arr.length;
+    if(agg==='avg') return arr.reduce((s,n)=>s+n,0)/arr.length;
+    if(agg==='max') return Math.max(...arr);
+    if(agg==='min') return Math.min(...arr);
+    return 0;
+  });
+  return { labels, values };
+}
+
+/* ===========================
+   Render de gráficos
+   =========================== */
+const charts = new Map(); // canvasId -> Chart instance
+
+function createCard(cfg){
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.cfg = JSON.stringify(cfg);
+
+  const header = document.createElement('div');
+  header.className = 'card-h';
+  header.innerHTML = `<span>${cfg.title || defaultTitle(cfg)}</span>
+    <div class="tools">
+      <button class="icon del" title="Eliminar"><i class="fa-regular fa-trash-can"></i></button>
+    </div>`;
+  card.appendChild(header);
+
+  const canv = document.createElement('canvas');
+  canv.height = 220;
+  card.appendChild(canv);
+
+  boardEl.appendChild(card);
+
+  // bind
+  header.querySelector('.del').addEventListener('click', ()=>{
+    charts.get(canv)?.destroy();
+    charts.delete(canv);
+    card.remove();
+    saveBoard();
+  });
+
+  // render
+  renderChart(canv, cfg);
+}
+
+function defaultTitle(cfg){
+  const s = DEMO[cfg.source].schema;
+  if(cfg.type==='scatter'){
+    return `${s.met[cfg.metricX]} vs ${s.met[cfg.metricY]} (${cfg.source})`;
+  }
+  return `${s.met[cfg.metric]} por ${s.dim[cfg.dimension]} (${cfg.source})`;
+}
+
+function renderChart(canvas, cfg){
+  const data = DEMO[cfg.source].rows;
+
+  if(cfg.type==='scatter'){
+    const pts = data.map(r=>({x:Number(r[cfg.metricX]||0), y:Number(r[cfg.metricY]||0), label:(r[cfg.dimension]??'')}));
+    const chart = new Chart(canvas, {
+      type:'scatter',
+      data:{ datasets:[{ label: cfg.title || defaultTitle(cfg), data: pts, pointRadius:5 }] },
+      options:{ plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:(ctx)=>`(${ctx.raw.x}, ${ctx.raw.y})` } } } }
+    });
+    charts.set(canvas, chart);
+    return;
+  }
+
+  // bar / pie
+  const ag = aggregate(data, cfg.dimension, cfg.metric, cfg.agg);
+  const isBar = cfg.type==='bar';
+  const chart = new Chart(canvas, {
+    type: isBar ? 'bar' : 'pie',
+    data: {
+      labels: ag.labels,
+      datasets: [{
+        label: cfg.title || defaultTitle(cfg),
+        data: ag.values
+      }]
+    },
+    options: {
+      plugins:{ legend:{ position: isBar ? 'bottom' : 'right' } },
+      scales: isBar ? { y:{ beginAtZero:true } } : {}
+    }
+  });
+  charts.set(canvas, chart);
+}
+
+/* ===========================
+   Persistencia
+   =========================== */
+function saveBoard(){
+  const cfgs = $$('.card', boardEl).map(c=> JSON.parse(c.dataset.cfg));
+  localStorage.setItem(stateKey, JSON.stringify(cfgs));
+}
+function loadBoard(){
+  const raw = localStorage.getItem(stateKey);
+  if(!raw) return;
+  try{
+    const cfgs = JSON.parse(raw);
+    cfgs.forEach(cfg=> createCard(cfg));
+  }catch{}
+}
+loadBoard();
+
+/* ===========================
+   Acciones
+   =========================== */
+$('#btnAdd').addEventListener('click', ()=>{
+  const cfg = {
+    type: currentType,
+    source: sourceSel.value,
+    dim: DEMO[sourceSel.value].schema.dim,
+    metric: metASel.value,
+    metricX: metXSel.value,
+    metricY: metYSel.value,
+    dimension: dimSel.value,
+    agg: $('#agg').value,
+    title: ($('#title').value||'').trim()
+  };
+  // Validaciones mínimas
+  if(currentType!=='scatter' && !cfg.metric){ alert('Selecciona una métrica.'); return; }
+  if(currentType==='scatter' && (!cfg.metricX || !cfg.metricY)){ alert('Selecciona las métricas X e Y.'); return; }
+
+  createCard(cfg);
+  saveBoard();
+  $('#title').value='';
+});
+
+$('#btnClear').addEventListener('click', ()=>{
+  if(!confirm('¿Vaciar tablero?')) return;
+  charts.forEach(c=>c.destroy()); charts.clear();
+  boardEl.innerHTML='';
+  saveBoard();
+});
+</script>
+
+<style>
+.dbuilder{display:grid;grid-template-columns:320px 1fr;gap:18px}
+.builder{
+  background:#fff;border:1px solid var(--stroke);border-radius:14px;padding:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);
+  position:sticky;top:86px;height:max-content
+}
+.builder h3{margin:6px 0 8px}
+label{font-size:12px;color:#64748b;display:block;margin-bottom:6px}
+.input, select{width:100%;padding:10px 12px;border:1px solid var(--stroke);border-radius:10px;background:#fff}
+.chart-types{display:flex;gap:8px}
+.chip{border:1px solid var(--stroke);background:#fff;border-radius:999px;padding:8px 12px;cursor:pointer}
+.chip.active{background:#0ea5e9;color:#fff;border-color:#0ea5e9}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.actions{display:flex;gap:8px;margin-top:12px}
+.btn{padding:10px 12px;border-radius:10px;border:1px solid var(--stroke);cursor:pointer}
+.btn.primary{background:#0ea5e9;color:#fff;border-color:#0ea5e9}
+.btn.ghost{background:#f8fafc}
+.tip{font-size:12px;color:#6b7280;margin-top:10px}
+
+.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card{background:#fff;border:1px solid var(--stroke);border-radius:14px;box-shadow:0 4px 12px rgba(0,0,0,.06);overflow:hidden}
+.card-h{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--stroke);font-weight:600}
+.icon{background:#f1f5f9;border:1px solid var(--stroke);border-radius:10px;padding:6px 10px;cursor:pointer}
+.tools{display:flex;gap:6px}
+@media (max-width:1100px){ .dbuilder{grid-template-columns:1fr} }
+</style>
+{% endblock %}

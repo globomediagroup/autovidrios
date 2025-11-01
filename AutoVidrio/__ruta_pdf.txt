@@ -1,0 +1,72 @@
+
+@app.get("/articulo/<int:art_id>/pdf")
+def articulo_pdf(art_id):
+    a = get_articulo_by_id(art_id)          # usa tu función actual de fetch
+    tpl = "pdf/ficha_tecnica.html" if request.args.get("v") != "old" else "pdf/ficha_tecnica_legacy.html"
+    html = render_template(tpl, a=a, empresa_nombre="AutoVidrios")
+
+    # Si ya conviertes a PDF, deja tu conversión. Ejemplo:
+    # return pdfkit.from_string(html, False), 200, {"Content-Type":"application/pdf"}
+    return html
+
+    # buffer para PDF
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=A4)
+    width, height = A4
+
+    # ======= CABECERA =======
+    c.setFont("Helvetica-Bold", 18)
+    c.drawString(2*cm, height - 2*cm, "Ficha Técnica")
+    c.setFont("Helvetica", 12)
+    c.drawString(2*cm, height - 2.7*cm, art["descripcion"])
+
+    # ======= IMAGEN =======
+    if art.get("imagenes"):
+        try:
+            c.drawImage("." + art["imagenes"][0], 2*cm, height - 10*cm, width=10*cm, height=6*cm, preserveAspectRatio=True, mask='auto')
+        except:
+            c.setFillColor(colors.red)
+            c.drawString(2*cm, height - 10*cm, "[Imagen no disponible]")
+
+    # ======= DATOS PRINCIPALES =======
+    y = height - 11*cm
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(2*cm, y, "Datos principales")
+    c.setFont("Helvetica", 11)
+    y -= 0.6*cm
+    datos = [
+        ("Código", art["cod_int"]),
+        ("Categoría", art.get("categoria", "-")),
+        ("Marca", art.get("marca", "-")),
+        ("Modelo", art.get("modelo", "-")),
+        ("Año", art.get("anio", "-")),
+        ("Estado", art.get("estado", "-")),
+        ("Precio neto", f"${art.get('precio_venta', 0):,}".replace(",", "."))
+    ]
+    for label, val in datos:
+        c.drawString(2*cm, y, f"{label}: {val}")
+        y -= 0.5*cm
+
+    # ======= PIE DE PÁGINA =======
+    c.setFont("Helvetica-Oblique", 9)
+    c.setFillColor(colors.gray)
+    c.drawString(2*cm, 1.5*cm, "Generado automáticamente por Autovidrios · Software a medida")
+
+    c.showPage()
+    c.save()
+
+    buf.seek(0)
+    return send_file(buf, mimetype="application/pdf", as_attachment=True, download_name=f"ficha_{art['cod_int']}.pdf")
+
+
+
+# ================== COTIZACIONES -> PDF ==================
+from io import BytesIO
+from flask import send_file, jsonify, url_for
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+import os
+

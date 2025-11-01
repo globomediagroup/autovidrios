@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% set title = "Cotizador" %}
+
+{% block content %}
+<section class="section">
+  <h1 class="h1"><i class="fa-solid fa-cart-shopping"></i> Cotizador</h1>
+
+  <div class="q-grid">
+    <!-- Ítems -->
+    <div class="q-col">
+      <div class="card">
+        <div class="card-title">Artículos seleccionados</div>
+
+        <!-- Toolbar de ingreso rápido -->
+        <div class="q-toolbar">
+          <input id="addInput" class="pill-input" list="artList" placeholder="Buscar por código o descripción…">
+          <datalist id="artList">
+            {% for a in articulos %}
+              <option value="{{ a.cod_int }}" label="{{ a.descripcion }}"></option>
+            {% endfor %}
+          </datalist>
+          <button class="btn primary" id="btnAdd"><i class="fa-solid fa-plus"></i> Agregar</button>
+        </div>
+
+        <div id="emptyState" class="empty hidden">
+          <div class="empty-illu">🧾</div>
+          <h3>Tu cotizador está vacío</h3>
+          <p>Agrega productos desde el inventario o con el buscador superior.</p>
+          <div class="empty-actions">
+            <a class="btn primary" href="{{ url_for('inventario_listado') }}">
+              <i class="fa-solid fa-magnifying-glass"></i> Ir a inventario
+            </a>
+          </div>
+        </div>
+
+        <div class="table-wrap" id="cartTableWrap">
+          <table class="table q-table" id="cartTable">
+            <thead>
+              <tr>
+                <th style="width:110px">Código</th>
+                <th>Descripción</th>
+                <th style="width:120px">Precio neto</th>
+                <th style="width:150px">Cantidad</th>
+                <th style="width:130px">Subtotal</th>
+                <th class="actions" style="width:70px">Acción</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="q-footer">
+          <button class="btn ghost" id="btnClear">
+            <i class="fa-regular fa-trash-can"></i> Vaciar
+          </button>
+          <a class="btn secondary" href="{{ url_for('inventario_listado') }}">
+            <i class="fa-solid fa-arrow-left"></i> Seguir cotizando
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resumen -->
+    <aside class="q-aside">
+      <div class="card q-sticky">
+        <div class="card-title">Resumen</div>
+
+        <div class="q-summary">
+          <div class="q-row">
+            <span>Subtotal neto</span>
+            <strong id="sumSub">$0</strong>
+          </div>
+
+          <div class="q-row">
+            <label class="q-inline">
+              <input type="checkbox" id="chkIva" checked>
+              <span>Aplicar IVA 19%</span>
+            </label>
+            <strong id="sumIva">$0</strong>
+          </div>
+
+          <div class="q-row">
+            <label class="q-inline" for="discount">Descuento</label>
+            <div class="q-discount">
+              <input id="discount" type="number" min="0" max="100" step="1" value="0">
+              <span>%</span>
+            </div>
+          </div>
+
+          <div class="q-divider"></div>
+
+          <div class="q-row q-total">
+            <span>Total</span>
+            <strong id="sumTotal">$0</strong>
+          </div>
+        </div>
+
+        <div class="q-actions">
+          <button class="btn primary" id="btnCotizacion">
+            <i class="fa-solid fa-paper-plane"></i> Generar cotización
+          </button>
+        </div>
+
+        <div class="q-meta">
+          <label>Cliente</label>
+          <input id="cliente" class="pill-input" list="clientesList" placeholder="Escribe nombre o razón social…">
+          <datalist id="clientesList">
+            {% for c in clientes %}
+              <option value="{{ c.razon }}"></option>
+            {% endfor %}
+          </datalist>
+
+          <label style="margin-top:10px">Observaciones</label>
+          <textarea id="obs" rows="3" class="q-textarea" placeholder="Notas de la cotización…"></textarea>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<style>
+.q-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 18px;
+  align-items: flex-start;   /* 🔑 asegura que aside no se estire */
+}
+
+.table-wrap {
+  max-height: 400px;        /* altura máxima visible */
+  overflow-y: auto;         /* scroll si la tabla crece */
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+}
+
+  @media (max-width:1100px){
+    .q-grid{grid-template-columns:1fr}
+  }
+
+  /* Aside fijo con scroll interno */
+  .q-aside {
+    display:flex;
+    flex-direction:column;
+  }
+  .q-aside .card.q-sticky {
+    position:sticky;
+    top:86px;
+    max-height:calc(100vh - 100px);
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .q-table td,.q-table th {vertical-align:middle;text-align:center}
+  .q-table td:nth-child(2){text-align:left}
+
+  .q-footer{display:flex;gap:10px;justify-content:space-between;padding:12px}
+  .q-summary{display:flex;flex-direction:column;gap:10px;padding:10px}
+  .q-row{display:flex;justify-content:space-between;align-items:center}
+  .q-row.q-total strong{font-size:20px}
+  .q-inline{display:flex;align-items:center;gap:8px}
+  .q-discount{display:flex;align-items:center;gap:6px}
+  .q-discount input{width:90px;height:40px;border:1px solid var(--stroke);border-radius:10px;padding:0 10px}
+  .q-divider{height:1px;background:var(--stroke);margin:4px 0}
+  .q-actions{display:flex;gap:10px;padding:10px}
+  .q-meta{padding:10px}
+  .q-textarea{width:100%;border:1px solid var(--stroke);border-radius:12px;padding:10px;background:#fff}
+  .pill-input{width:100%;border:1px solid var(--stroke);border-radius:20px;padding:10px 14px;background:#fff}
+
+  .q-toolbar{display:flex;gap:10px;padding:12px}
+  .q-toolbar .pill-input{flex:1}
+
+  .qty{display:flex;align-items:center;gap:6px;justify-content:center}
+  .qty input{width:70px;height:40px;text-align:center;border:1px solid var(--stroke);border-radius:10px;background:#fff}
+  .qty .btnx{width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--stroke);background:#fff;border-radius:10px;cursor:pointer}
+  .qty .btnx:hover{background:#f8fafc}
+
+  .empty{text-align:center;padding:36px}
+  .empty.hidden{display:none}
+  .empty-illu{font-size:42px;margin-bottom:6px}
+  .empty-actions{display:flex;justify-content:center;margin-top:10px}
+
+  @media print{
+    header.topbar,aside.sidebar,.q-footer,.q-actions,.q-toolbar{display:none!important}
+    .q-grid{grid-template-columns:1fr}
+    .card{box-shadow:none;border:0}
+  }
+</style>
+
+<script>
+(() => {
+  const ART_LIST = {{ (articulos|default([]))|tojson }};
+  const ART_MAP = new Map(ART_LIST.map(a => [String(a.id), a]));
+  const ART_BY_CODE = new Map(ART_LIST.map(a => [String(a.cod_int || '').toLowerCase(), a]));
+  const norm = s => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+
+  const LS_KEY = 'cotizador_items';
+  const getCart = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); } catch { return []; } };
+  const setCart = (arr) => { localStorage.setItem(LS_KEY, JSON.stringify(arr)); window.refreshCotizadorCount?.(); };
+
+  const fmt = n => '$' + (Math.round(Number(n)||0)).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+
+  const tbody = document.querySelector('#cartTable tbody');
+  const wrapTable = document.getElementById('cartTableWrap');
+  const emptyState = document.getElementById('emptyState');
+  const sumSub = document.getElementById('sumSub');
+  const sumIva = document.getElementById('sumIva');
+  const sumTotal = document.getElementById('sumTotal');
+  const chkIva = document.getElementById('chkIva');
+  const discount = document.getElementById('discount');
+  const addInput = document.getElementById('addInput');
+  const btnAdd = document.getElementById('btnAdd');
+
+  // --- Normaliza el carrito ---
+  function normalize(){
+    return getCart()
+      .map(x => ({ id:String(x.id), qty: Math.max(1, parseInt(x.qty||1)) }))
+      .filter(x => ART_MAP.has(x.id));
+  }
+
+  // --- Buscar artículo ---
+  function findArticulo(query){
+    if(!query) return null;
+    const q = norm(query);
+    const byCode = ART_BY_CODE.get(q);
+    if(byCode) return byCode;
+    return ART_LIST.find(a=>{
+      const blob = norm([a.cod_int, a.descripcion, a.marca, a.modelo, a.anio].join(' '));
+      return blob.includes(q);
+    }) || null;
+  }
+
+  // --- Agregar artículo ---
+  function addArticulo(query){
+    const art = findArticulo(query);
+    if(!art){ alert('Artículo no encontrado'); return; }
+    const items = normalize();
+    const id = String(art.id);
+    const idx = items.findIndex(x=>x.id===id);
+    if(idx>=0){ items[idx].qty += 1; }
+    else { items.push({id, qty:1}); }
+    setCart(items);
+    render();
+    addInput.value = '';
+    addInput.focus();
+  }
+
+  btnAdd.addEventListener('click', ()=> addArticulo(addInput.value));
+  addInput.addEventListener('keydown', e=>{
+    if(e.key==='Enter'){ e.preventDefault(); addArticulo(addInput.value); }
+  });
+
+  // --- Render ---
+  function render(){
+    const items = normalize();
+    tbody.innerHTML = '';
+    if(!items.length){
+      wrapTable.style.display='none';
+      emptyState.classList.remove('hidden');
+      updateTotals();
+      return;
+    }
+    wrapTable.style.display='';
+    emptyState.classList.add('hidden');
+
+    items.forEach(it=>{
+      const a = ART_MAP.get(it.id);
+      const tr = document.createElement('tr');
+      const precio = Number(a.precio_venta||0);
+      tr.dataset.id = it.id;
+      tr.innerHTML = `
+        <td><span class="p-badge">${a.cod_int||'-'}</span></td>
+        <td style="max-width:520px">${a.descripcion||'-'}</td>
+        <td>${fmt(precio)}</td>
+        <td>
+          <div class="qty">
+            <button class="btnx minus" title="Menos"><i class="fa-solid fa-minus"></i></button>
+            <input type="number" class="qinput" min="1" value="${it.qty}">
+            <button class="btnx plus" title="Más"><i class="fa-solid fa-plus"></i></button>
+          </div>
+        </td>
+        <td class="subtotal">${fmt(precio*it.qty)}</td>
+        <td class="actions-cell">
+          <button class="icon del" title="Quitar"><i class="fa-regular fa-trash-can"></i></button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    bindRowEvents();
+    updateTotals();
+  }
+
+  // --- Eventos por fila ---
+  function bindRowEvents(){
+    tbody.querySelectorAll('tr').forEach(tr=>{
+      const id = tr.dataset.id;
+      const input = tr.querySelector('.qinput');
+      tr.querySelector('.minus').addEventListener('click', ()=>{ input.value=Math.max(1,parseInt(input.value||1)-1); changeQty(id,input.value); });
+      tr.querySelector('.plus').addEventListener('click',  ()=>{ input.value=Math.max(1,parseInt(input.value||1)+1); changeQty(id,input.value); });
+      input.addEventListener('change', ()=>{ input.value=Math.max(1,parseInt(input.value||1)); changeQty(id,input.value); });
+      tr.querySelector('.del').addEventListener('click', ()=> removeItem(id));
+    });
+  }
+
+  // --- Cambiar cantidad ---
+  function changeQty(id, qty){
+    const items = normalize();
+    const i = items.findIndex(x=>x.id===String(id));
+    if(i>=0){ items[i].qty = Math.max(1,parseInt(qty||1)); setCart(items); }
+    const a = ART_MAP.get(String(id));
+    const row = tbody.querySelector(`tr[data-id="${id}"]`);
+    if(row) row.querySelector('.subtotal').textContent = fmt(Number(a.precio_venta||0)*items[i].qty);
+    updateTotals();
+  }
+
+  // --- Quitar artículo ---
+  function removeItem(id){
+    const items = normalize().filter(x=>x.id!==String(id));
+    setCart(items);
+    document.querySelector(`tr[data-id="${id}"]`)?.remove();
+    if(!items.length){ wrapTable.style.display='none'; emptyState.classList.remove('hidden'); }
+    updateTotals();
+  }
+
+  // --- Totales ---
+  function updateTotals(){
+    const items = normalize();
+    let sub = 0;
+    items.forEach(it=>{
+      const a = ART_MAP.get(it.id);
+      sub += (Number(a?.precio_venta||0)) * (Number(it.qty)||1);
+    });
+    const d = Math.min(100, Math.max(0, Number(discount.value||0)));
+    const subAfterDisc = sub * (1 - d/100);
+    const iva = chkIva.checked ? subAfterDisc * 0.19 : 0;
+    const total = subAfterDisc + iva;
+
+    sumSub.textContent = fmt(subAfterDisc);
+    sumIva.textContent  = fmt(iva);
+    sumTotal.textContent= fmt(total);
+  }
+
+  chkIva.addEventListener('change', updateTotals);
+  discount.addEventListener('input', updateTotals);
+
+  // --- Vaciar ---
+  document.getElementById('btnClear').addEventListener('click', ()=>{
+    if(!confirm('¿Vaciar cotizador?')) return;
+    setCart([]);
+    render();
+  });
+
+  // --- Guardar cotización ---
+  document.getElementById('btnCotizacion').addEventListener('click', ()=>{
+    const items = normalize();
+    if(!items.length){ alert('Agrega productos antes de generar la cotización'); return; }
+
+    const cliente = document.getElementById('cliente').value.trim();
+    const obs = document.getElementById('obs').value.trim();
+
+    const payload = {
+      cliente,
+      total: sumTotal.textContent.replace(/\D/g,''), // solo número
+      items,
+      observaciones: obs
+    };
+
+    fetch("/api/cotizaciones", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(payload)
+    })
+    .then(r=>r.json())
+    .then(res=>{
+      if(res.ok){
+        setCart([]); // limpiar carrito
+        window.location.href = "/cotizaciones";
+      } else {
+        alert("Error al guardar cotización");
+      }
+    })
+    .catch(()=> alert("Error de conexión al guardar cotización"));
+  });
+
+  // --- Inicial ---
+  render();
+})();
+</script>
+
+{% endblock %}

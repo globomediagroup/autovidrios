@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Ficha técnica · {{ a.cod_int or 'SKU' }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0f172a;--muted:#64748b;--line:#e5e7eb;--brand:#0ea5e9}
+*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink)}
+@page{size:A4;margin:18mm 16mm}
+header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--line);padding-bottom:8px;margin-bottom:14px}
+header .brand{display:flex;align-items:center;gap:10px}
+header img{height:28px}
+header .doc{font-weight:600;font-size:14px;color:var(--muted);letter-spacing:.4px;text-transform:uppercase}
+.band{display:grid;grid-template-columns:1fr auto;gap:8px;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:12px;background:#fff}
+.price{background:#e8fff6;border-color:#10b981;color:#065f46;font-weight:600}
+.two{display:grid;grid-template-columns:38% 1fr;gap:16px;margin-bottom:12px}
+.hero{border:1px solid var(--line);border-radius:12px;padding:8px;height:270px;display:flex;align-items:center;justify-content:center;background:#fff}
+.hero img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px}
+.thumbs{display:flex;gap:8px;margin-top:8px}
+.thumbs img{height:56px;border:1px solid var(--line);border-radius:8px;padding:4px;background:#fff}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kv .card{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}
+.label{font-size:11px;color:var(--muted);margin-bottom:4px}.value{font-size:14px}
+h3{font-size:14px;margin:14px 0 8px 0}
+table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th,td{padding:10px 12px;font-size:12px;border-bottom:1px solid var(--line)}
+th{background:#f3f4f6;text-align:left;color:#334155}
+tr:last-child td{border-bottom:0}.zebra tr:nth-child(even) td{background:#fafafa}
+.compat{display:flex;flex-wrap:wrap;gap:8px}
+.compat .chip{background:#eef6ff;border-color:#dbeafe;color:#1e40af}
+footer{position:fixed;left:16mm;right:16mm;bottom:10mm;font-size:10px;color:var(--muted);display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:6px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <img src="{{ url_for('static', filename='uploads/logo.png') }}" alt="Logo">
+    <div>
+      <div class="doc">Ficha técnica</div>
+      <div style="font-size:13px;font-weight:600">{{ a.descripcion or 'Artículo' }}</div>
+    </div>
+  </div>
+  <div style="text-align:right">
+    <div style="font-size:12px;color:var(--muted)">Código</div>
+    <div style="font-size:15px;font-weight:600">{{ a.cod_int }}</div>
+  </div>
+</header>
+
+<section class="band">
+  <div class="chips">
+    <span class="chip">Proveedor: {{ a.cod_proveedor or '—' }}</span>
+    <span class="chip">Categoría: {{ a.categoria or '—' }}</span>
+    <span class="chip">Marca: {{ a.marca or '—' }}</span>
+    <span class="chip">Modelo: {{ a.modelo or '—' }}</span>
+    <span class="chip">Año: {{ a.anio or '—' }}</span>
+    <span class="chip">Estado: {{ a.estado or '—' }}</span>
+  </div>
+  <div class="chip price">Precio neto: ${{ "{:,}".format(a.precio_venta or 0).replace(',','.') }}</div>
+</section>
+
+<section class="two">
+  <div>
+    <div class="hero">
+      {% set _img = (a.imagenes[0] if a.imagenes) if a.imagenes else url_for('static',filename='sprites/parabrisas_ejemplo.jpeg') %}
+      <img src="{{ _img }}" alt="imagen principal">
+    </div>
+    {% if a.imagenes and a.imagenes|length > 1 %}
+    <div class="thumbs">
+      {% for im in a.imagenes[1:4] %}<img src="{{ im }}" alt="thumb">{% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="kv">
+    <div class="card"><div class="label">Subcategoría</div><div class="value">{{ a.subcategoria or '—' }}</div></div>
+    <div class="card"><div class="label">Compatibilidad</div><div class="value">{{ a.compatibilidad or '—' }}</div></div>
+    <div class="card"><div class="label">Color/Tinte</div><div class="value">{{ a.color or 'Transparente' }}</div></div>
+    <div class="card"><div class="label">Ubicación</div><div class="value">{{ a.ubicacion or '—' }}</div></div>
+    <div class="card"><div class="label">Dimensiones</div><div class="value">{{ a.medidas or '—' }}</div></div>
+    <div class="card"><div class="label">Observaciones</div><div class="value">{{ a.obs or '—' }}</div></div>
+  </div>
+</section>
+
+<h3>Especificaciones técnicas</h3>
+<table class="zebra">
+  <tbody>
+    <tr><th>Material</th><td>{{ a.material or 'Laminado templado' }}</td></tr>
+    <tr><th>Incluye sensor</th><td>{{ 'Sí' if (a.sensor_lluvia or False) else 'No' }}</td></tr>
+    <tr><th>Soporte espejo</th><td>{{ 'Sí' if (a.soporte_espejo or False) else 'No' }}</td></tr>
+    <tr><th>Norma</th><td>{{ a.norma or 'ECE R43 / DOT' }}</td></tr>
+    <tr><th>Garantía</th><td>{{ a.garantia or '6 meses' }}</td></tr>
+  </tbody>
+</table>
+
+<h3>Inventario por bodega</h3>
+<table class="zebra">
+  <thead><tr><th>Bodega</th><th>Stock</th></tr></thead>
+  <tbody>
+    {% set bodegas = (a.inventario.bodegas if a.inventario and a.inventario.bodegas) else {} %}
+    {% if bodegas %}
+      {% for b,qty in bodegas.items() %}
+      <tr><td>{{ b }}</td><td>{{ qty }}</td></tr>
+      {% endfor %}
+    {% else %}
+      <tr><td>—</td><td>{{ a.stock_total or 0 }}</td></tr>
+    {% endif %}
+  </tbody>
+</table>
+
+<h3>Compatibilidades</h3>
+<div class="compat">
+  {% for chip in (a.compat_list or []) %}
+    <span class="chip">{{ chip }}</span>
+  {% else %}
+    <span class="chip">Marca {{ a.marca or '—' }}</span>
+    <span class="chip">Modelo {{ a.modelo or '—' }}</span>
+    <span class="chip">{{ a.anio or '—' }}</span>
+  {% endfor %}
+</div>
+
+<footer>
+  <div>Generado por Adily · {{ empresa_nombre or 'AutoVidrios' }}</div>
+  <div>Página 1</div>
+</footer>
+</body>
+</html>

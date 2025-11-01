@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% set title = "Usuarios" %}
+
+{% block content %}
+<section class="section">
+  <h1 class="h1"><i class="fa-solid fa-users-gear"></i> Usuarios</h1>
+
+  <!-- Top actions -->
+  <div class="q-actions" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <div class="input-icon" style="flex:1;min-width:260px">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input id="searchUser" class="pill-input" placeholder="Buscar usuario…" style="width:100%">
+    </div>
+    <button id="btnNewUser" class="btn primary"><i class="fa-solid fa-plus"></i> Nuevo usuario</button>
+    <button id="btnExportUsers" class="btn secondary"><i class="fa-solid fa-file-export"></i> Exportar</button>
+  </div>
+
+  <!-- Tabla -->
+  <div class="card" style="margin-top:14px">
+    <div class="card-title">Listado de usuarios</div>
+    <div class="table-wrap">
+      <table class="table q-table" id="tblUsuarios">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Email</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>Último acceso</th>
+            <th style="width:120px" class="actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="usersBody">
+          {% for u in users %}
+          <tr data-id="{{ u.id }}">
+            <td><strong>{{ u.username }}</strong></td>
+            <td>{{ u.email }}</td>
+            <td>{{ u.role }}</td>
+            <td>
+              {% if u.active %}
+              <span class="badge green">Activo</span>
+              {% else %}
+              <span class="badge red">Inactivo</span>
+              {% endif %}
+            </td>
+            <td>{{ u.last_login or '-' }}</td>
+            <td class="actions-cell">
+              <button class="icon edit" title="Editar"><i class="fa-regular fa-pen-to-square"></i></button>
+              {% if u.username != 'admin' %}
+              <button class="icon del" title="Eliminar"><i class="fa-regular fa-trash-can"></i></button>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" style="text-align:center;padding:16px">Aún no hay usuarios</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Modal Crear/Editar -->
+<dialog id="dlgUser">
+  <form method="dialog" id="formUser" class="user-modal">
+    <div class="modal-header">
+      <h2 id="dlgUserTitle">Nuevo usuario</h2>
+    </div>
+    <div class="modal-body">
+      <div class="grid">
+        <div class="row">
+          <div class="col">
+            <div class="field">
+              <i class="fa-solid fa-user"></i>
+              <input id="userName" class="line-input" placeholder="Usuario *" required>
+            </div>
+          </div>
+          <div class="col">
+            <div class="field">
+              <i class="fa-solid fa-envelope"></i>
+              <input id="userEmail" type="email" class="line-input" placeholder="Email *" required>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <div class="field">
+              <i class="fa-solid fa-lock"></i>
+              <input id="userPwd" type="password" class="line-input" placeholder="Contraseña *">
+            </div>
+          </div>
+          <div class="col">
+            <div class="field">
+              <i class="fa-solid fa-id-badge"></i>
+              <select id="userRole" class="line-input">
+                {% for r in roles %}
+                <option value="{{ r.name }}">{{ r.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col check-col">
+            <input id="userActive" type="checkbox" checked>
+            <label for="userActive">Usuario activo</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn secondary" id="btnCloseUser">Cancelar</button>
+      <button type="button" class="btn primary" id="btnSaveUser"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<style>
+/* ===== MODAL ===== */
+#dlgUser::backdrop {
+  background: rgba(15,23,42,.45);
+}
+#dlgUser {
+  border: none !important;   /* quita marco negro */
+  outline: none !important;  /* quita contorno */
+  padding: 0;
+  background: transparent;   /* elimina fondo gris */
+}
+.user-modal {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(15,23,42,.2);
+  padding: 24px 28px;
+  max-width: 520px;
+  width: calc(100vw - 48px);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 10px;
+}
+.modal-body {display: flex; flex-direction: column; gap: 18px;}
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+/* ===== GRID ===== */
+.grid .row {display: grid; grid-template-columns: repeat(2,1fr); gap: 20px;}
+.grid .col {display: flex; flex-direction: column; gap: 14px;}
+.check-col {display: flex; align-items: center; gap: 8px; font-size: 14px; color: #334155;}
+
+/* ===== INPUTS LINE ===== */
+.field {
+  display: flex;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  transition: all .2s;
+}
+.field i {
+  color: #64748b;
+  margin-right: 8px;
+  font-size: 14px;
+}
+.field .line-input {
+  border: none;
+  flex: 1;
+  font-size: 14px;
+  padding: 6px 2px;
+  background: transparent;
+}
+.field .line-input:focus {
+  outline: none;
+}
+.field:focus-within {
+  border-color: #38bdf8;
+  background: #fff;
+}
+
+/* Badges */
+.badge.red {background: #fee2e2; color: #b91c1c;}
+.badge.green {background: #dcfce7; color: #166534;}
+</style>
+
+<script>
+const dlgU = document.getElementById('dlgUser');
+let currentUserId = null;
+
+// abrir modal
+document.getElementById('btnNewUser').addEventListener('click', ()=>{
+  currentUserId = null;
+  document.getElementById('dlgUserTitle').textContent = 'Nuevo usuario';
+  document.getElementById('userName').value = '';
+  document.getElementById('userEmail').value = '';
+  document.getElementById('userPwd').value = '';
+  document.getElementById('userRole').value = 'Cliente';
+  document.getElementById('userActive').checked = true;
+  dlgU.showModal();
+});
+
+// cerrar
+document.getElementById('btnCloseUser').addEventListener('click', ()=> dlgU.close());
+
+// guardar
+document.getElementById('btnSaveUser').addEventListener('click', async ()=>{
+  const username = document.getElementById('userName').value.trim();
+  const email    = document.getElementById('userEmail').value.trim();
+  const pwd      = document.getElementById('userPwd').value.trim();
+  const role     = document.getElementById('userRole').value;
+  const active   = document.getElementById('userActive').checked;
+  if(!username || !email || (!currentUserId && !pwd)){ alert('Faltan datos'); return; }
+
+  const payload = {username,email,role,active};
+  if(!currentUserId) payload.password = pwd;
+
+  const url = currentUserId ? `/api/usuarios/${currentUserId}` : '/api/usuarios';
+  const method = currentUserId ? 'PUT' : 'POST';
+  const res = await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const j = await res.json(); if(!j.ok){ alert(j.error||'Error'); return; }
+  location.reload();
+});
+
+// editar
+document.getElementById('usersBody').addEventListener('click', e=>{
+  const tr = e.target.closest('tr'); if(!tr) return;
+  const id = +tr.dataset.id;
+  const edit = e.target.closest('.edit');
+  const del  = e.target.closest('.del');
+  if(edit){
+    fetch(`/api/usuarios/${id}`).then(r=>r.json()).then(j=>{
+      if(!j.ok){ alert(j.error); return; }
+      const u = j.user;
+      currentUserId = u.id;
+      document.getElementById('dlgUserTitle').textContent = 'Editar usuario';
+      document.getElementById('userName').value = u.username;
+      document.getElementById('userEmail').value = u.email;
+      document.getElementById('userPwd').value = '';
+      document.getElementById('userRole').value = u.role;
+      document.getElementById('userActive').checked = u.active;
+      dlgU.showModal();
+    });
+  }
+  if(del){
+    if(confirm('¿Eliminar usuario?')){
+      fetch(`/api/usuarios/${id}`,{method:'DELETE'}).then(r=>r.json()).then(j=>{
+        if(!j.ok){ alert(j.error); return; }
+        location.reload();
+      });
+    }
+  }
+});
+
+// búsqueda
+document.getElementById('searchUser').addEventListener('input', e=>{
+  const s = e.target.value.toLowerCase();
+  document.querySelectorAll('#usersBody tr').forEach(tr=>{
+    tr.style.display = tr.innerText.toLowerCase().includes(s) ? '' : 'none';
+  });
+});
+
+document.getElementById('btnExportUsers').addEventListener('click', ()=> window.location='/usuarios/export');
+</script>
+{% endblock %}

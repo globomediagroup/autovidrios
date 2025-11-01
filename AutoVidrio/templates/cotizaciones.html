@@ -1,0 +1,501 @@
+{% extends "base.html" %}
+{% set title = "Cotizaciones" %}
+
+{% block content %}
+<section class="section">
+  <h1 class="h1"><i class="fa-solid fa-file-invoice"></i> Cotizaciones</h1>
+
+  <!-- Toolbar -->
+  <div class="q-toolbar">
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input id="searchInput" type="text" placeholder="Buscar cotización por cliente o número…">
+    </div>
+
+    <div class="filters">
+      <input type="date" id="dateFrom">
+      <input type="date" id="dateTo">
+      <select id="propietarioFilter">
+        <option value="">Propietario (todos)</option>
+        {% for p in propietarios %}
+          <option value="{{ p }}">{{ p }}</option>
+        {% endfor %}
+      </select>
+      <select id="rolFilter">
+        <option value="">Rol (todos)</option>
+        {% for r in roles %}
+          <option value="{{ r }}">{{ r }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="q-actions">
+      <a href="{{ url_for('cotizador') }}" class="btn primary">
+        <i class="fa-solid fa-plus"></i> Nueva cotización
+      </a>
+      <button class="btn secondary"><i class="fa-solid fa-file-export"></i> Exportar</button>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="card">
+    <div class="card-title">Listado de Cotizaciones</div>
+    <div class="table-wrap">
+      <table class="table q-table" id="cotizacionesTable">
+        <thead>
+          <tr>
+            <th style="width:70px">N°</th>
+            <th>Cliente</th>
+            <th>Propietario</th>
+            <th>Rol Asignado</th>
+            <th style="width:140px">Fecha</th>
+            <th style="width:120px">Total</th>
+            <th style="width:120px">Estado</th>
+            <th style="width:80px" class="actions">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in cotizaciones %}
+          <tr data-id="{{ c.id }}" data-cliente="{{ c.cliente }}" data-fecha="{{ c.fecha }}" data-total="{{ "{:,.0f}".format(c.total) }}" data-estado="{{ c.estado }}" data-telefono="{{ c.telefono or '' }}">
+            <td>{{ c.id }}</td>
+            <td>{{ c.cliente }}</td>
+            <td>{{ c.propietario }}</td>
+            <td>{{ c.rol_asignado }}</td>
+            <td>{{ c.fecha }}</td>
+            <td>${{ "{:,.0f}".format(c.total) }}</td>
+            <td>
+              {% if c.estado == "Pendiente" %}
+                <span class="badge yellow">Pendiente</span>
+              {% elif c.estado == "Aceptada" %}
+                <span class="badge green">Aceptada</span>
+              {% elif c.estado == "Rechazada" %}
+                <span class="badge red">Rechazada</span>
+              {% endif %}
+            </td>
+            <td class="actions-cell">
+              <button class="icon action-toggle" data-id="{{ c.id }}">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
+              </button>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" style="text-align:center;padding:20px">No hay cotizaciones registradas.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div
+  </div>
+
+  <!-- Modal Copiar Cotización -->
+<div class="modal" id="copyModal" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3>Detalle copiado</h3>
+      <button class="modal-close" id="copyClose" aria-label="Cerrar">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>El detalle de la cotización fue copiado al portapapeles.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn primary" id="copyOk">
+        <i class="fa-solid fa-check"></i> Aceptar
+      </button>
+    </div>
+  </div>
+</div>
+
+
+</section>
+
+<!-- Menú de acciones flotante -->
+<div id="actionMenu" class="actions-menu">
+  <a href="#" id="btnPdf"><i class="fa-solid fa-file-pdf"></i> Descargar PDF</a>
+  <a href="#" id="btnCopy"><i class="fa-solid fa-copy"></i> Copiar cotización</a>
+  <a href="#" id="btnWhatsapp"><i class="fa-brands fa-whatsapp"></i> Enviar por WhatsApp</a>
+  <a href="#" id="btnEdit"><i class="fa-solid fa-pen"></i> Editar</a>
+  <a href="#" id="btnApprove" class="success"><i class="fa-solid fa-check"></i> Aprobar</a>
+  <a href="#" id="btnCancel" class="danger"><i class="fa-solid fa-ban"></i> Anular</a>
+</div>
+
+
+<style>
+  .actions-menu a.success { color:#16a34a; }   /* verde para aprobar */
+.actions-menu a.danger { color:#dc2626; }   /* rojo para anular */
+
+/* Toolbar */
+.q-toolbar {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+/* Buscador */
+.search-box {
+  display:flex;
+  align-items:center;
+  background:#fff;
+  border:1px solid var(--stroke);
+  border-radius:30px;
+  padding:6px 14px;
+  gap:8px;
+  box-shadow:0 2px 6px rgba(0,0,0,.05);
+  width:260px;
+  flex-shrink:0;
+}
+.search-box i { color:#64748b; }
+.search-box input {
+  border:none; outline:none;
+  flex:1;
+  background:transparent;
+  font-size:14px;
+  min-width:0;
+}
+
+/* Filtros */
+.filters {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-shrink:0;
+}
+.filters input,
+.filters select {
+  background:#fff;
+  border:1px solid var(--stroke);
+  padding:6px 8px;
+  border-radius:8px;
+  font-size:13px;
+  min-width:120px;
+  max-width:160px;
+}
+
+/* Acciones */
+.q-actions {
+  display:flex;
+  gap:10px;
+  margin-left:auto;
+}
+
+/* Badges */
+.badge {
+  display:inline-block;
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:13px;
+  font-weight:500;
+}
+.badge.yellow { background:#fef3c7; color:#b45309; }
+.badge.green { background:#dcfce7; color:#166534; }
+.badge.red { background:#fee2e2; color:#991b1b; }
+
+/* Icon botón */
+.actions-cell .icon {
+  border:none;
+  background:none;
+  cursor:pointer;
+  color:var(--text-strong);
+}
+
+/* Menú de acciones flotante */
+.actions-menu {
+  position: fixed;   /* 👈 evita que se corte en el contenedor */
+  display: none;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0,0,0,.12);
+  min-width: 200px;
+  z-index: 2000;
+}
+.actions-menu a {
+  padding:10px 14px;
+  font-size:14px;
+  color:var(--text);
+  text-decoration:none;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.actions-menu a:hover { background:#f9fafb; }
+.actions-menu a.danger { color:#dc2626; }
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 4000;
+}
+
+.confirm-overlay.show { display: flex; }
+
+.confirm-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  width: 360px;
+  box-shadow: 0 25px 60px rgba(0,0,0,.25);
+  text-align: center;
+  animation: popIn .18s ease-out;
+}
+
+.confirm-card h3 {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.confirm-card p {
+  font-size: 14px;
+  color: #4b5563;
+  margin-bottom: 20px;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+@keyframes popIn {
+  from { transform: scale(.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+</style>
+
+<script>
+const actionMenu = document.getElementById("actionMenu");
+let currentRow = null;
+
+// Mostrar menú flotante en la posición correcta
+document.addEventListener("click", e=>{
+  if(e.target.closest(".action-toggle")){
+    e.preventDefault();
+    const btn = e.target.closest(".action-toggle");
+    const rect = btn.getBoundingClientRect();
+    
+// primero mostrar para que tenga tamaño
+actionMenu.style.display = "flex";
+
+// forzar cálculo
+const mw = actionMenu.offsetWidth;
+const mh = actionMenu.offsetHeight;
+
+let top = window.scrollY + rect.bottom + 6;
+let left = window.scrollX + rect.left;
+
+// si se sale por la derecha
+if (left + mw > window.innerWidth - 8) {
+  left = window.innerWidth - mw - 8;
+}
+
+// si se sale por abajo
+if (top + mh > window.innerHeight - 8) {
+  top = window.scrollY + rect.top - mh - 6;
+}
+
+actionMenu.style.top = `${top}px`;
+actionMenu.style.left = `${left}px`;
+
+
+    currentRow = btn.closest("tr");
+  } else if(!e.target.closest("#actionMenu")){
+    actionMenu.style.display = "none";
+    currentRow = null;
+  }
+});
+
+// === Acciones ===
+document.getElementById("btnPdf").addEventListener("click", e=>{
+  e.preventDefault();
+  if(currentRow){
+    const id = currentRow.dataset.id;
+    window.open(`/cotizaciones/pdf/${id}`,"_blank");
+  }
+});
+
+document.getElementById("btnCopy").addEventListener("click", e=>{
+  e.preventDefault();
+  if(currentRow){
+    try {
+      // 👇 Aquí solo usamos el contenido mínimo
+      const detalle = `Detalle:\n- Parabrisas Toyota Yaris 2018–2022: $129.990\nTotal Neto: $154.690`;
+
+      navigator.clipboard.writeText(detalle).then(()=>{
+        // Mostrar modal custom en vez de alert
+        document.getElementById("copyModal").classList.add("show");
+      });
+    } catch(err){
+      console.error("Error al copiar:", err);
+    }
+  }
+});
+
+// Cerrar modal
+document.getElementById("copyClose").addEventListener("click", ()=>{
+  document.getElementById("copyModal").classList.remove("show");
+});
+document.getElementById("copyOk").addEventListener("click", ()=>{
+  document.getElementById("copyModal").classList.remove("show");
+});
+
+
+
+
+document.getElementById("btnWhatsapp").addEventListener("click", async e=>{
+  e.preventDefault();
+  if(currentRow){
+    const id = currentRow.dataset.id;
+    try {
+      // 1) pedir al backend que genere el PDF
+      let res = await fetch(`/cotizaciones/pdfshare/${id}`);
+      let data = await res.json();
+      if(!data.ok){ alert("Error generando PDF"); return; }
+
+      // 2) armar mensaje con link al PDF
+      const pdfUrl = data.url;
+      const msg = `Hola ${currentRow.dataset.cliente}, le envío su cotización #${id}.\n\nPuede descargarla aquí: ${pdfUrl}`;
+
+      // 3) abrir WhatsApp con número fijo
+      const telefono = "56979470601"; // sin espacios ni "+"
+      window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(msg)}`,"_blank");
+    } catch(err){
+      alert("Error al generar o enviar PDF");
+    }
+  }
+});
+
+
+document.getElementById("btnEdit").addEventListener("click", e=>{
+  e.preventDefault();
+  alert("Aquí deberías abrir el panel de edición con los datos de la cotización seleccionada");
+});
+
+document.getElementById("btnDelete").addEventListener("click", e=>{
+  e.preventDefault();
+  if(currentRow && confirm("¿Seguro que deseas eliminar esta cotización?")){
+    const id = currentRow.dataset.id;
+    window.location.href = `/cotizaciones/delete/${id}`;
+  }
+});
+
+// === Filtros ===
+const searchInput = document.getElementById("searchInput");
+const dateFrom = document.getElementById("dateFrom");
+const dateTo = document.getElementById("dateTo");
+const propietarioFilter = document.getElementById("propietarioFilter");
+const rolFilter = document.getElementById("rolFilter");
+
+function applyFilters() {
+  const q = searchInput.value.toLowerCase();
+  const from = dateFrom.value ? new Date(dateFrom.value) : null;
+  const to = dateTo.value ? new Date(dateTo.value) : null;
+  const propietario = propietarioFilter.value.toLowerCase();
+  const rol = rolFilter.value.toLowerCase();
+
+  document.querySelectorAll("#cotizacionesTable tbody tr").forEach(tr=>{
+    let cells = tr.querySelectorAll("td");
+    if(cells.length < 6) return;
+
+    const cliente = cells[1].innerText.toLowerCase();
+    const prop = cells[2].innerText.toLowerCase();
+    const rolAsignado = cells[3].innerText.toLowerCase();
+    const fecha = new Date(cells[4].innerText);
+
+    let show = true;
+    if(q && !cliente.includes(q) && !cells[0].innerText.includes(q)) show = false;
+    if(from && fecha < from) show = false;
+    if(to && fecha > to) show = false;
+    if(propietario && prop !== propietario) show = false;
+    if(rol && rolAsignado !== rol) show = false;
+
+    tr.style.display = show ? "" : "none";
+  });
+}
+
+[searchInput,dateFrom,dateTo,propietarioFilter,rolFilter].forEach(el=>{
+  el.addEventListener("input", applyFilters);
+});
+
+</script>
+
+<script>
+// === Aprobar ===
+document.getElementById("btnApprove").addEventListener("click", e=>{
+  e.preventDefault();
+  if(currentRow){
+    currentRow.dataset.estado = "Aprobada";
+    const tdEstado = currentRow.querySelector("td:nth-child(7)");
+    tdEstado.innerHTML = `<span class="badge green">Aprobada</span>`;
+    actionMenu.style.display = "none";
+  }
+});
+
+// === Anular ===
+document.getElementById("btnCancel").addEventListener("click", e=>{
+  e.preventDefault();
+ if(currentRow){
+  confirmFuturista("¿Seguro que deseas anular esta cotización?")
+    .then(ok=>{
+      if(ok){
+        currentRow.dataset.estado = "Anulada";
+        const tdEstado = currentRow.querySelector("td:nth-child(7)");
+        tdEstado.innerHTML = `<span class="badge red">Anulada</span>`;
+        actionMenu.style.display = "none";
+      }
+    });
+}
+})
+</script>
+
+<script>
+
+  function confirmFuturista(msg){
+  return new Promise(resolve=>{
+    const overlay = document.getElementById("confirmOverlay");
+    const msgEl = document.getElementById("confirmMsg");
+    msgEl.textContent = msg;
+    overlay.classList.add("show");
+
+    const btnOk = document.getElementById("confirmOk");
+    const btnCancel = document.getElementById("confirmCancel");
+
+    function cleanup(result){
+      overlay.classList.remove("show");
+      btnOk.removeEventListener("click", okHandler);
+      btnCancel.removeEventListener("click", cancelHandler);
+      resolve(result);
+    }
+    function okHandler(){ cleanup(true); }
+    function cancelHandler(){ cleanup(false); }
+
+    btnOk.addEventListener("click", okHandler);
+    btnCancel.addEventListener("click", cancelHandler);
+  });
+}
+
+</script>
+
+<!-- Modal Confirmación Futurista -->
+<div class="confirm-overlay" id="confirmOverlay" aria-hidden="true">
+  <div class="confirm-card">
+    <h3 id="confirmTitle">Confirmar acción</h3>
+    <p id="confirmMsg">¿Seguro que deseas continuar?</p>
+    <div class="confirm-actions">
+      <button class="btn secondary" id="confirmCancel"><i class="fa-solid fa-xmark"></i> Cancelar</button>
+      <button class="btn danger" id="confirmOk"><i class="fa-solid fa-check"></i> Aceptar</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

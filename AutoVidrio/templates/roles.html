@@ -1,0 +1,597 @@
+{% extends "base.html" %}
+{% set title = "Roles" %}
+
+{% block content %}
+<section class="section">
+  <h1 class="h1"><i class="fa-solid fa-user-shield"></i> Roles & Permisos</h1>
+
+  <!-- Top actions -->
+  <div class="q-actions" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <div style="position:relative;flex:1;min-width:260px">
+      <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:12px;top:10px;color:#64748b"></i>
+      <input id="searchRole" class="pill-input" placeholder="Buscar rol por nombre o descripción…" style="padding-left:36px;width:100%">
+    </div>
+    <button id="btnNewRole" class="btn primary"><i class="fa-solid fa-plus"></i> Nuevo rol</button>
+    <button id="btnExportRoles" class="btn secondary"><i class="fa-solid fa-file-export"></i> Exportar</button>
+  </div>
+
+  <!-- Table -->
+  <div class="card" style="margin-top:14px">
+    <div class="card-title">Listado de roles</div>
+    <div class="table-wrap">
+      <table class="table q-table" id="tblRoles">
+        <thead>
+          <tr>
+            <th style="width:240px;text-align:left">Rol</th>
+            <th style="text-align:left">Descripción</th>
+            <th style="width:120px">Permisos</th>
+            <th style="width:120px">Usuarios</th>
+            <th style="width:120px">Estado</th>
+            <th style="width:120px" class="actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="rolesBody">
+          {% for r in roles %}
+          <tr data-id="{{ r.id }}">
+            <td style="text-align:left">
+              <strong>{{ r.name }}</strong>
+            </td>
+            <td style="text-align:left">{{ r.desc }}</td>
+            <td>{{ r.permissions|length }}</td>
+            <td>{{ r.users|length }}</td>
+            <td>
+              {% if r.is_system %}
+              <span class="badge yellow">Sistema</span>
+              {% else %}
+              <span class="badge green">Activo</span>
+              {% endif %}
+            </td>
+            <td class="actions-cell">
+              <button class="icon edit" title="Editar"><i class="fa-regular fa-pen-to-square"></i></button>
+              {% if not r.is_system %}
+              <button class="icon del" title="Eliminar"><i class="fa-regular fa-trash-can"></i></button>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" style="text-align:center;padding:16px">Aún no hay roles</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Modal (dialog) para Crear/Editar rol ===== -->
+<dialog id="dlgRole">
+  <form method="dialog" id="formRole" class="card" style="max-width:980px;width:calc(100vw - 48px);border:none">
+    <div class="card-title" id="dlgTitle">Nuevo rol</div>
+
+    <div class="tabs" style="display:flex;gap:8px;margin:8px 10px 0 10px">
+      <button type="button" class="tab-btn active" data-tab="tab-general">General</button>
+      <button type="button" class="tab-btn" data-tab="tab-perms">Permisos</button>
+      <button type="button" class="tab-btn" data-tab="tab-users">Usuarios</button>
+    </div>
+
+    <div class="tab-pane show" id="tab-general" style="padding:10px 12px">
+      <div class="grid">
+        <div class="row">
+          <div class="col">
+            <label>Nombre del rol *</label>
+            <input id="roleName" class="pill-input" required placeholder="Ej: Vendedor, Bodega, Invitado">
+          </div>
+          <div class="col">
+            <label>Descripción</label>
+            <input id="roleDesc" class="pill-input" placeholder="Breve descripción del rol">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <label>Estado</label>
+            <input id="roleIsSystem" type="checkbox" disabled> <small class="muted">Sistema (protegido)</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========= NUEVO UI DE PERMISOS ========= -->
+    <div class="tab-pane" id="tab-perms" style="padding:6px 12px">
+      <div class="muted" style="margin-bottom:10px">
+        Activa módulos, elige un <strong>nivel</strong> rápido o abre <strong>Avanzado</strong> para marcar acciones finas.
+      </div>
+
+      <!-- Toolbar rápida: aplicar a todos -->
+      <div class="perm-toolbar">
+        <span>Aplicar a todos:</span>
+        <button type="button" class="mini-btn" data-apply="read">Solo lectura</button>
+        <button type="button" class="mini-btn" data-apply="standard">Estándar (C+E)</button>
+        <button type="button" class="mini-btn" data-apply="full">Completo (C+E+D)</button>
+        <button type="button" class="mini-btn ghost" data-apply="none">Limpiar</button>
+      </div>
+
+      <!-- Lista por módulo -->
+      <div id="permList" class="perm-list"><!-- se rellena por JS --></div>
+
+      <div class="muted tip">
+        * Alcance (Scope) es visual por ahora. Si tu API lo soporta, podrás guardarlo junto a los permisos.
+      </div>
+    </div>
+
+    <div class="tab-pane" id="tab-users" style="padding:6px 12px">
+      <div class="muted" style="margin-bottom:8px">Asigna usuarios a este rol.</div>
+      <div class="assign">
+        <select id="assignUsers" class="pill-input" multiple size="8" style="width:100%">
+          {% for u in users %}
+          <option value="{{ u.username }}">{{ u.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="footer" style="justify-content:flex-end">
+      <button type="button" class="btn secondary" id="btnCloseDlg">Cancelar</button>
+      <button type="button" class="btn primary" id="btnSaveRole"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<style>
+/* tabs */
+.tab-btn{border:1px solid var(--stroke);background:#fff;border-radius:999px;padding:6px 12px;cursor:pointer}
+.tab-btn.active{background:#0ea5e9;color:#fff;border-color:#0ea5e9}
+.tab-pane{display:none}
+.tab-pane.show{display:block}
+
+/* ======= NUEVO UI PERMISOS ======= */
+.perm-toolbar{
+  display:flex;gap:8px;align-items:center;
+  padding:8px 10px;margin:4px 0 12px;border:1px solid var(--stroke);
+  border-radius:10px;background:#f8fafc;flex-wrap:wrap
+}
+.mini-btn{
+  border:1px solid var(--stroke);background:#fff;border-radius:999px;
+  padding:6px 10px;font-size:12px;cursor:pointer
+}
+.mini-btn:hover{background:#eef2f7}
+.mini-btn.ghost{background:#fff;color:#111827}
+
+.perm-list{display:flex;flex-direction:column;gap:10px}
+.perm-row{
+  border:1px solid var(--stroke);border-radius:12px;padding:12px;background:#fff
+}
+.perm-head{
+  display:grid;grid-template-columns:220px 110px 1fr 300px 120px;gap:10px;align-items:center
+}
+@media(max-width:1024px){
+  .perm-head{grid-template-columns:1fr 100px 1fr}
+  .perm-scope{grid-column:1/-1}
+  .perm-adv{grid-column:1/-1}
+}
+.perm-title{font-weight:600}
+.switch{display:flex;align-items:center;gap:8px}
+.switch input[type=checkbox]{transform:scale(1.1)}
+.seg{
+  display:inline-flex;border:1px solid var(--stroke);border-radius:999px;overflow:hidden
+}
+.seg button{
+  border:0;background:#fff;padding:6px 10px;font-size:12px;cursor:pointer
+}
+.seg button.active{background:#0ea5e9;color:#fff}
+.seg button:disabled{opacity:.5;cursor:not-allowed}
+
+.perm-scope{display:flex;gap:10px;align-items:center;justify-content:flex-end}
+.perm-scope label{font-size:12px;color:#64748b}
+.scope-group{display:flex;gap:8px}
+.scope-group .chip{
+  border:1px solid var(--stroke);border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer;background:#fff
+}
+.scope-group .chip.active{background:#e0f2fe;border-color:#38bdf8;color:#0ea5e9}
+
+.perm-adv details{
+  border-top:1px dashed var(--stroke);margin-top:10px;padding-top:10px
+}
+.perm-adv summary{
+  list-style:none;cursor:pointer;color:#0ea5e9;font-size:13px
+}
+.perm-adv summary::-webkit-details-marker{display:none}
+.perm-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+.perm-actions .act{
+  border:1px solid var(--stroke);border-radius:10px;padding:6px 10px;font-size:12px;
+  display:flex;align-items:center;gap:6px
+}
+.perm-row.off{opacity:.6}
+
+/* dialog reset */
+#dlgRole::backdrop{background:rgba(15,23,42,.45)}
+#dlgRole{padding:0;border:none;background:transparent}
+#dlgRole .card{box-shadow:0 20px 60px rgba(15,23,42,.25);border-radius:18px}
+
+/* ===== Modal refinado ===== */
+#dlgRole::backdrop { background: rgba(15,23,42,.55); backdrop-filter: blur(3px); }
+#dlgRole { padding: 0; border: none; background: transparent; }
+#dlgRole .card { border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+
+/* ===== Header ===== */
+#dlgTitle { font-size: 18px; font-weight: 600; padding: 16px 20px; border-bottom: 1px solid var(--stroke); }
+
+/* ===== Tabs ===== */
+.tabs, .tab-btn { display: flex; gap: 8px; margin: 0 20px 12px; }
+.tab-btn { border: 1px solid var(--stroke); background: #fff; border-radius: 999px; padding: 6px 14px; font-size: 14px; cursor: pointer; transition: all .2s; }
+.tab-btn.active { background: var(--accent,#0ea5e9); color: #fff; border-color: var(--accent,#0ea5e9); }
+
+/* ===== Body ===== */
+.tab-pane { display: none; padding: 12px 20px 20px; }
+.tab-pane.show { display: block; }
+
+/* ===== Form inputs ===== */
+.pill-input { border: 1px solid var(--stroke); border-radius: 10px; padding: 8px 12px; font-size: 14px; width: 100%; box-sizing: border-box; }
+label { font-size: 13px; font-weight: 500; margin-bottom: 4px; display: block; }
+.row { display: flex; gap: 16px; margin-bottom: 14px; }
+.col { flex: 1; }
+
+/* ===== Select usuarios ===== */
+.assign select { border: 1px solid var(--stroke); border-radius: 12px; padding: 6px 10px; font-size: 14px; }
+.assign select:focus { outline: none; border-color: var(--accent,#0ea5e9); box-shadow: 0 0 0 2px rgba(14,165,233,.25); }
+
+/* ===== Footer ===== */
+#dlgRole .footer { border-top: 1px solid var(--stroke); padding: 14px 20px; display: flex; justify-content: flex-end; gap: 10px; }
+
+.muted.tip{margin-top:8px;font-size:12px;color:#6b7280}
+</style>
+
+<script>
+// ===== Datos iniciales desde servidor =====
+const ROLES    = {{ roles|tojson }};
+const USERS    = {{ users|tojson }};
+const PERMSCAT = {{ perm_catalog|tojson }}; // [{module, action, code, label?}]
+
+// ===== Helpers comunes =====
+const dlg  = document.getElementById('dlgRole');
+const tbl  = document.getElementById('rolesBody');
+const q    = document.getElementById('searchRole');
+
+let currentRoleId = null;
+
+// ========= NUEVO: estado de permisos por módulo =========
+const MODULES = (() => {
+  const map = {};
+  PERMSCAT.forEach(p => {
+    if(!map[p.module]) map[p.module] = { name: p.module, actions: [] };
+    map[p.module].actions.push({ action: p.action, code: p.code, label: p.label || p.action });
+  });
+  // orden básico de acciones
+  const order = ['view','create','edit','delete','export','approve','admin'];
+  Object.values(map).forEach(m => m.actions.sort((a,b)=>{
+    const ia = order.indexOf(a.action); const ib = order.indexOf(b.action);
+    return (ia<0?999:ia) - (ib<0?999:ib) || a.action.localeCompare(b.action);
+  }));
+  return map;
+})();
+
+// Estado vivo
+let PERM_STATE = {}; // { module: {enabled:boolean, level:'read'|'standard'|'full'|'none', set:Set(codes), scope:'self'|'team'|'org'} }
+
+// construir estado base
+function buildStateFromSelected(selectedCodes){
+  const sel = new Set(selectedCodes||[]);
+  PERM_STATE = {};
+  Object.keys(MODULES).forEach(mod=>{
+    const acts = MODULES[mod].actions;
+    const set = new Set(acts.filter(a=>sel.has(a.code)).map(a=>a.code));
+    const enabled = set.size>0;
+    const level = inferLevel(mod, set);
+    PERM_STATE[mod] = { enabled, level, set, scope:'org' }; // scope visual
+  });
+}
+
+function inferLevel(mod, set){
+  const has = name => {
+    const a = MODULES[mod].actions.find(x=>x.action===name);
+    return a ? set.has(a.code) : false;
+  };
+  if(has('delete')) return 'full';
+  if(has('create') || has('edit')) return 'standard';
+  if(has('view')) return 'read';
+  return 'none';
+}
+
+function baseCodesForLevel(mod, level){
+  const need = [];
+  const findCode = a => (MODULES[mod].actions.find(x=>x.action===a)||{}).code;
+  if(level==='read'){ const c=findCode('view'); if(c) need.push(c); }
+  if(level==='standard'){
+    ['view','create','edit'].forEach(a=>{ const c=findCode(a); if(c) need.push(c); });
+  }
+  if(level==='full'){
+    ['view','create','edit','delete'].forEach(a=>{ const c=findCode(a); if(c) need.push(c); });
+  }
+  return new Set(need);
+}
+
+function setLevel(mod, level){
+  const st = PERM_STATE[mod];
+  const base = baseCodesForLevel(mod, level);
+
+  // preserva "extras" (no base CRUD)
+  const baseNames = new Set(['view','create','edit','delete']);
+  const extras = new Set([...st.set].filter(code=>{
+    const a = MODULES[mod].actions.find(x=>x.code===code);
+    return a && !baseNames.has(a.action);
+  }));
+
+  st.set = new Set([...base, ...extras]);
+  st.level = level;
+  st.enabled = st.set.size>0;
+}
+
+function setEnabled(mod, on){
+  const st = PERM_STATE[mod];
+  st.enabled = !!on;
+  if(!on){ st.set.clear(); st.level='none'; }
+  else if(st.level==='none'){ setLevel(mod,'read'); } // auto view
+}
+
+function toggleAction(mod, code, on){
+  const st = PERM_STATE[mod];
+  if(on) st.set.add(code); else st.set.delete(code);
+  st.enabled = st.set.size>0;
+  st.level = inferLevel(mod, st.set);
+}
+
+// ====== Render UI ======
+function renderPermUI(selected=[]){
+  buildStateFromSelected(selected);
+  const wrap = document.getElementById('permList');
+  wrap.innerHTML = '';
+
+  Object.keys(MODULES).forEach(mod=>{
+    const row = document.createElement('div');
+    row.className = 'perm-row';
+    row.dataset.mod = mod;
+
+    // cabeza
+    const head = document.createElement('div');
+    head.className = 'perm-head';
+
+    // título
+    const title = document.createElement('div');
+    title.className = 'perm-title';
+    title.textContent = MODULES[mod].name;
+
+    // switch
+    const sw = document.createElement('div');
+    sw.className = 'switch';
+    sw.innerHTML = `<input type="checkbox" ${PERM_STATE[mod].enabled?'checked':''} aria-label="Activar módulo"><span>Activo</span>`;
+
+    // segment niveles
+    const seg = document.createElement('div');
+    seg.className = 'seg';
+    ['read','standard','full'].forEach(k=>{
+      const btn = document.createElement('button');
+      btn.type='button';
+      btn.textContent = (k==='read'?'Solo lectura':k==='standard'?'Estándar':'Completo');
+      if(PERM_STATE[mod].level===k) btn.classList.add('active');
+      btn.disabled = !PERM_STATE[mod].enabled;
+      btn.addEventListener('click', ()=>{
+        setLevel(mod,k);
+        updateRow(row);
+      });
+      seg.appendChild(btn);
+    });
+
+    // scope (visual)
+    const scope = document.createElement('div');
+    scope.className = 'perm-scope';
+    scope.innerHTML = `<label>Alcance</label>
+      <div class="scope-group">
+        <button type="button" class="chip" data-scope="self">Yo</button>
+        <button type="button" class="chip" data-scope="team">Equipo</button>
+        <button type="button" class="chip" data-scope="org">Empresa</button>
+      </div>`;
+
+    // avanzado
+    const adv = document.createElement('div');
+    adv.className = 'perm-adv';
+    const details = document.createElement('details');
+    const sum = document.createElement('summary');
+    sum.textContent = 'Avanzado';
+    details.appendChild(sum);
+
+    const actions = document.createElement('div');
+    actions.className = 'perm-actions';
+    MODULES[mod].actions.forEach(a=>{
+      const div = document.createElement('label');
+      div.className = 'act';
+      const ck = document.createElement('input');
+      ck.type='checkbox'; ck.value=a.code;
+      ck.checked = PERM_STATE[mod].set.has(a.code);
+      ck.addEventListener('change',()=>{ toggleAction(mod,a.code,ck.checked); updateRow(row); });
+      const txt = document.createElement('span');
+      txt.textContent = a.label || a.action;
+      if(a.action==='delete' || a.action==='export' || a.action==='admin'){ txt.innerHTML += ' <small style="color:#ef4444">⚠</small>'; }
+      div.appendChild(ck); div.appendChild(txt);
+      actions.appendChild(div);
+    });
+    details.appendChild(actions);
+    adv.appendChild(details);
+
+    head.appendChild(title);
+    head.appendChild(sw);
+    head.appendChild(seg);
+    head.appendChild(scope);
+    head.appendChild(adv);
+    row.appendChild(head);
+    wrap.appendChild(row);
+
+    // listeners switch + scope
+    const swInput = sw.querySelector('input[type=checkbox]');
+    swInput.addEventListener('change',()=>{ setEnabled(mod, swInput.checked); updateRow(row); });
+
+    scope.querySelectorAll('.chip').forEach(ch=>{
+      ch.addEventListener('click', ()=>{
+        PERM_STATE[mod].scope = ch.dataset.scope;
+        scope.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active', c===ch));
+      });
+    });
+
+    // estado inicial de scope UI
+    scope.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active', c.dataset.scope===PERM_STATE[mod].scope));
+
+    updateRow(row);
+  });
+
+  // Toolbar "aplicar a todos"
+  document.querySelectorAll('.perm-toolbar .mini-btn').forEach(b=>{
+    b.onclick = ()=>{
+      const mode = b.dataset.apply; // read | standard | full | none
+      Object.keys(PERM_STATE).forEach(mod=>{
+        if(mode==='none'){ setEnabled(mod,false); }
+        else { setEnabled(mod,true); setLevel(mod,mode); }
+      });
+      document.querySelectorAll('.perm-row').forEach(updateRow);
+    };
+  });
+}
+
+function updateRow(row){
+  const mod = row.dataset.mod;
+  const st = PERM_STATE[mod];
+
+  row.classList.toggle('off', !st.enabled);
+
+  // switch
+  const swInput = row.querySelector('.switch input');
+  if(swInput.checked !== st.enabled) swInput.checked = st.enabled;
+
+  // segment
+  const segBtns = row.querySelectorAll('.seg button');
+  segBtns.forEach(btn=>{
+    const tag = btn.textContent.includes('Solo')?'read':btn.textContent.includes('Estándar')?'standard':'full';
+    btn.classList.toggle('active', st.level===tag);
+    btn.disabled = !st.enabled;
+  });
+
+  // checkboxes avanzados
+  row.querySelectorAll('.perm-actions input[type=checkbox]').forEach(ck=>{
+    ck.checked = st.set.has(ck.value);
+    ck.disabled = !st.enabled;
+  });
+}
+
+// ===== Abrir modal para crear =====
+document.getElementById('btnNewRole').addEventListener('click', ()=>{
+  currentRoleId = null;
+  document.getElementById('dlgTitle').textContent = 'Nuevo rol';
+  document.getElementById('roleName').value = '';
+  document.getElementById('roleDesc').value = '';
+  document.getElementById('roleIsSystem').checked = false;
+  renderPermUI([]);
+  // reset users
+  const sel = document.getElementById('assignUsers');
+  [...sel.options].forEach(o=>o.selected=false);
+  openTab('tab-general');
+  dlg.showModal();
+});
+
+// Editar
+tbl.addEventListener('click', (e)=>{
+  const btn = e.target.closest('.edit');
+  const del = e.target.closest('.del');
+  const tr  = e.target.closest('tr');
+  if(!tr) return;
+  const id  = +tr.dataset.id;
+  const role = ROLES.find(r=>r.id===id);
+
+  if(btn){
+    currentRoleId = id;
+    document.getElementById('dlgTitle').textContent = `Editar rol #${id}`;
+    document.getElementById('roleName').value = role.name;
+    document.getElementById('roleDesc').value = role.desc||'';
+    document.getElementById('roleIsSystem').checked = !!role.is_system;
+    renderPermUI(role.permissions||[]);
+    // usuarios
+    const sel = document.getElementById('assignUsers');
+    const set = new Set(role.users||[]);
+    [...sel.options].forEach(o=> o.selected = set.has(o.value) );
+    openTab('tab-general');
+    dlg.showModal();
+  }
+  if(del){
+    if(confirm('¿Eliminar este rol?')){
+      fetch(`/api/roles/${id}`, {method:'DELETE'}).then(r=>r.json()).then(j=>{
+        if(!j.ok){ alert(j.error||'Error'); return; }
+        location.reload();
+      });
+    }
+  }
+});
+
+// Guardar (se mantiene API: enviamos sólo array de codes)
+document.getElementById('btnSaveRole').addEventListener('click', async ()=>{
+  const name = document.getElementById('roleName').value.trim();
+  const desc = document.getElementById('roleDesc').value.trim();
+  if(!name){ alert('El nombre del rol es obligatorio'); return; }
+
+  // recopilar permisos desde estado
+  const perms = [];
+  Object.values(PERM_STATE).forEach(st => st.set.forEach(c=>perms.push(c)));
+
+  // usuarios asignados
+  const sel = document.getElementById('assignUsers');
+  const users = [...sel.selectedOptions].map(o=>o.value);
+
+  if(currentRoleId==null){
+    const res = await fetch('/api/roles', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name, desc, permissions:perms, users})
+    });
+    const j = await res.json();
+    if(!j.ok){ alert(j.error||'Error'); return; }
+    location.reload();
+  }else{
+    // update general
+    let r = await fetch(`/api/roles/${currentRoleId}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name, desc})
+    }); let j = await r.json(); if(!j.ok){ alert(j.error||'Error'); return; }
+
+    // update perms (mantenemos misma ruta/payload)
+    r = await fetch(`/api/roles/${currentRoleId}/permissions`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({permissions: perms})
+    }); j = await r.json(); if(!j.ok){ alert(j.error||'Error'); return; }
+
+    // update users
+    r = await fetch(`/api/roles/${currentRoleId}/users`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({users})
+    }); j = await r.json(); if(!j.ok){ alert(j.error||'Error'); return; }
+
+    location.reload();
+  }
+});
+
+// cerrar modal
+document.getElementById('btnCloseDlg').addEventListener('click', ()=> dlg.close());
+
+// pestañas
+function openTab(id){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===id));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('show', p.id===id));
+}
+document.querySelectorAll('.tab-btn').forEach(b=> b.addEventListener('click', ()=> openTab(b.dataset.tab)) );
+
+// búsqueda
+q.addEventListener('input', ()=>{
+  const s = q.value.trim().toLowerCase();
+  document.querySelectorAll('#rolesBody tr').forEach(tr=>{
+    const txt = tr.innerText.toLowerCase();
+    tr.style.display = txt.includes(s) ? '' : 'none';
+  });
+});
+
+// export
+document.getElementById('btnExportRoles').addEventListener('click', ()=> window.location='/roles/export');
+</script>
+{% endblock %}

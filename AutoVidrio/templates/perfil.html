@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Perfil de Usuario</h1>
+</div>
+
+<div class="card" style="max-width:900px;margin:auto;">
+  <div class="card-body" style="padding:30px;">
+
+    <!-- ===== Datos del usuario ===== -->
+    <div class="field"><strong>Usuario:</strong> {{ datos.usuario }}</div>
+    <div class="field"><strong>Nombre:</strong> {{ datos.nombre }}</div>
+    <div class="field"><strong>Correo:</strong> {{ datos.email }}</div>
+    <div class="field"><strong>Teléfono:</strong> {{ datos.telefono }}</div>
+    <div class="field"><strong>Empresa:</strong> {{ datos.empresa }}</div>
+    <div class="field"><strong>Rol:</strong> {{ datos.rol }}</div>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="openModal('editModal')">Editar datos</button>
+      <button class="btn btn-secondary" onclick="openModal('pwdModal')">Cambiar contraseña</button>
+      <a class="btn btn-danger" href="/logout">Cerrar sesión</a>
+    </div>
+
+    <!-- ===== Separador ===== -->
+    <hr class="sep">
+
+    <!-- ===== Datos de la empresa asociada ===== -->
+    <h2 class="section-title"><i class="fa-solid fa-building"></i> Empresa asociada</h2>
+
+    <div class="empresa-box">
+      <div class="empresa-head">
+        {% if empresa and empresa.logo_url %}
+          <img src="{{ empresa.logo_url }}" alt="Logo empresa" class="empresa-logo">
+        {% endif %}
+        <div>
+          <div class="empresa-nombre">{{ (empresa.razon or empresa.nombre or datos.empresa) if empresa else (datos.empresa or '—') }}</div>
+          <div class="empresa-sub">
+            RUT: {{ (empresa.rut or '—') if empresa else '—' }}
+            {% if empresa and empresa.giro %} · Giro: {{ empresa.giro }}{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="empresa-grid">
+        <div>
+          <div class="lbl">Correo</div>
+          <div class="val">{{ empresa.email if empresa and empresa.email else '—' }}</div>
+        </div>
+        <div>
+          <div class="lbl">Teléfono</div>
+          <div class="val">{{ empresa.telefono if empresa and empresa.telefono else '—' }}</div>
+        </div>
+        <div class="span-2">
+          <div class="lbl">Dirección</div>
+          <div class="val">
+            {% if empresa %}
+              {{ empresa.direccion or '—' }}
+              {% if empresa.comuna %} · {{ empresa.comuna }}{% endif %}
+              {% if empresa.region %} · {{ empresa.region }}{% endif %}
+            {% else %}—{% endif %}
+          </div>
+        </div>
+        <div>
+          <div class="lbl">Sitio web</div>
+          <div class="val">
+            {% if empresa and empresa.web %}
+              <a href="{{ empresa.web }}" target="_blank" rel="noopener">{{ empresa.web }}</a>
+            {% else %}—{% endif %}
+          </div>
+        </div>
+        <div>
+          <div class="lbl">Contacto</div>
+          <div class="val">{{ empresa.contacto if empresa and empresa.contacto else '—' }}</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal Editar Datos -->
+<div id="editModal" class="modal">
+  <div class="modal-content">
+    <h2>Editar datos</h2>
+    <form method="post" action="/perfil/editar">
+      <input type="text" name="nombre" value="{{ datos.nombre }}" required placeholder="Nombre completo">
+      <input type="email" name="email" value="{{ datos.email }}" required placeholder="Correo">
+      <input type="tel" name="telefono" value="{{ datos.telefono }}" required placeholder="Teléfono">
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+        <button type="button" class="btn btn-light" onclick="closeModal('editModal')">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Cambiar Contraseña -->
+<div id="pwdModal" class="modal">
+  <div class="modal-content">
+    <h2>Cambiar contraseña</h2>
+    <form method="post" action="/perfil/password">
+      <input type="password" name="actual" required placeholder="Contraseña actual">
+      <input type="password" name="nueva" required placeholder="Nueva contraseña">
+      <input type="password" name="repite" required placeholder="Repite la nueva contraseña">
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">Actualizar</button>
+        <button type="button" class="btn btn-light" onclick="closeModal('pwdModal')">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Estilos -->
+<style>
+  .card-body .field{margin-bottom:14px;font-size:15px;color:#374151}
+  .actions{margin-top:28px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+
+  .btn{padding:12px 22px;border:none;border-radius:8px;cursor:pointer;font-weight:600;transition:background .2s}
+  .btn-primary{background:#0ea5e9;color:#fff}
+  .btn-primary:hover{background:#0284c7}
+  .btn-secondary{background:#6366f1;color:#fff}
+  .btn-secondary:hover{background:#4f46e5}
+  .btn-danger{background:#ef4444;color:#fff;text-decoration:none}
+  .btn-danger:hover{background:#dc2626}
+  .btn-light{background:#f3f4f6;color:#111827}
+  .btn-light:hover{background:#e5e7eb}
+
+  .sep{border:0;border-top:1px solid #e5e7eb;margin:28px 0}
+
+  /* Empresa */
+  .section-title{font-size:18px;margin:0 0 12px 0;font-weight:600}
+  .empresa-box{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:16px}
+  .empresa-head{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+  .empresa-logo{width:56px;height:56px;border-radius:12px;object-fit:contain;background:#fff;border:1px solid #e5e7eb}
+  .empresa-nombre{font-size:16px;font-weight:600;color:#0f172a}
+  .empresa-sub{font-size:13px;color:#6b7280}
+
+  .empresa-grid{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:8px
+  }
+  .empresa-grid .span-2{grid-column:span 2}
+  @media (max-width:720px){ .empresa-grid{grid-template-columns:1fr} .empresa-grid .span-2{grid-column:auto} }
+
+  .lbl{font-size:12px;color:#6b7280;margin-bottom:4px}
+  .val{font-size:14px;color:#111827}
+  .val a{color:#0ea5e9;text-decoration:none}
+  .val a:hover{text-decoration:underline}
+
+  /* Modales */
+  .modal{position:fixed;top:0;left:0;width:100%;height:100%;
+         background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:1000}
+  .modal.active{display:flex}
+  .modal-content{background:#fff;padding:24px;border-radius:12px;width:100%;max-width:400px;
+                 box-shadow:0 8px 24px rgba(0,0,0,0.15);animation:fadeIn .3s ease}
+  .modal-content h2{margin-bottom:16px;font-size:20px;font-weight:600}
+  .modal-content input{width:100%;padding:12px;margin-bottom:14px;border:1px solid #d1d5db;border-radius:8px}
+  .modal-content .actions{display:flex;gap:12px;justify-content:flex-end}
+  @keyframes fadeIn{from{transform:scale(.95);opacity:.5}to{transform:scale(1);opacity:1}}
+</style>
+
+<!-- Scripts -->
+<script>
+  function openModal(id){document.getElementById(id).classList.add("active")}
+  function closeModal(id){document.getElementById(id).classList.remove("active")}
+</script>
+{% endblock %}

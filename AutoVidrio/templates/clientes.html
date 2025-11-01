@@ -1,0 +1,1091 @@
+{% extends "base.html" %}
+{% set title = "Clientes" %}
+
+{% block content %}
+<section class="section">
+  <h1 class="h1">Clientes</h1>
+
+  <div class="toolbar">
+    <div class="search">
+      <input id="qInput" placeholder="Buscar cliente…" autocomplete="off">
+    </div>
+    <div class="filters">
+  <select id="fRegion" class="pill-input" aria-label="Filtrar por región">
+    <option value="">Región</option>
+  </select>
+  <select id="fComuna" class="pill-input" aria-label="Filtrar por comuna" disabled>
+    <option value="">Comuna</option>
+  </select>
+
+    <!-- 🔹 Nuevo filtro -->
+<!-- 🔹 Filtro Condición de Pago con mismo estilo -->
+<select id="condPagoFilter" class="pill-input" aria-label="Filtrar por condición de pago">
+  <option value="">Condición de Pago</option>
+  <option value="Contado">Contado</option>
+  <option value="15 días">15 días</option>
+  <option value="30 días">30 días</option>
+  <option value="Crédito">Crédito</option>
+</select>
+
+</div>
+
+
+    <div class="actions">
+      
+      <a class="btn dark" id="btnExport" href="{{ url_for('export_clientes') }}">
+        <i class="fa-solid fa-file-export fa-fw"></i> Exportar
+      </a>
+    </div>
+
+  </div>
+
+  <div class="card">
+    <div class="card-title">Listado de Clientes</div>
+    
+    <div class="table-wrap">
+  <table class="table" id="tablaClientes">
+    <thead>
+      <tr>
+        <th>Razón Social</th>
+        <th>RUT</th>
+        <th>Región</th>
+        <th>Comuna</th>
+        <th>Contacto</th>
+        <th>Teléfono</th>
+        <th>Condición de Pago</th>
+        <th>Acción</th>
+      </tr>
+</thead>
+<tbody>
+{% for c in clientes %}
+  <tr data-id="{{ c.id }}">
+    <td>{{ c.razon }}</td>
+    <td>{{ c.rut }}</td>
+    <td>{{ c.region }}</td>
+    <td>{{ c.comuna }}</td>
+    <td>{{ c.contacto or c.contacto_nombre }}</td>
+    <td>{{ c.fono or c.contacto_fono }}</td>
+    <td>{{ c.cond_pago or '—' }}</td>   {# ← valor cond_pago #}
+    <td class="actions-cell" style="position:relative">
+      <button class="icon action-trigger" aria-label="Acciones">
+        <i class="fa-solid fa-ellipsis-vertical"></i>
+      </button>
+    </td>
+  </tr>
+{% endfor %}
+</tbody>
+
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Modal Crear/Editar -->
+<div class="modal" id="modal">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3>Datos de la Empresa</h3>
+      <button class="modal-close" id="closeModal" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <form id="formCliente" class="modal-body">
+      <div class="field">
+        <label>Razón Social *</label>
+        <input name="razon" required>
+      </div>
+      <div class="field">
+        <label>RUT *</label>
+        <input name="rut" required>
+      </div>
+      <div class="field">
+        <label>Giro</label>
+        <input name="giro">
+      </div>
+      <div class="field">
+        <label>Región</label>
+        <select name="region">
+          <option value="">Seleccione una región</option>
+          <option>Coquimbo</option>
+          <option>Biobío</option>
+          <option>Región Metropolitana</option>
+          <option>Los Lagos</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Comuna</label>
+        <select name="comuna">
+          <option value="">Seleccione una comuna</option>
+          <option>La Serena</option>
+          <option>Concepción</option>
+          <option>Santiago</option>
+          <option>Osorno</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Teléfono</label>
+        <input name="fono">
+      </div>
+      <div class="field">
+        <label>Dirección</label>
+        <input name="direccion">
+      </div>
+      <div class="field">
+        <label>Notas</label>
+        <textarea name="notas" rows="3"></textarea>
+      </div>
+
+      <div style="height:8px"></div>
+      <h3>Datos del Contacto</h3>
+
+      <div class="field">
+        <label>Nombre</label>
+        <input name="contacto_nombre">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input name="contacto_email">
+      </div>
+      <div class="field">
+        <label>Teléfono</label>
+        <input name="contacto_fono">
+      </div>
+      <div class="field">
+        <label>Cargo</label>
+        <input name="contacto_cargo">
+      </div>
+      <div class="field">
+        <label>Notas del contacto</label>
+        <textarea name="contacto_notas" rows="3"></textarea>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn ghost" id="cancelar"><i class="fa-solid fa-ban"></i> Cancelar</button>
+        <button type="submit" class="btn primary"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal VER PERFIL (futurista) -->
+<div id="profileOverlay" class="profile-overlay" aria-hidden="true">
+  <div class="profile-card" role="dialog" aria-modal="true" aria-labelledby="p_title">
+    <div class="p-header">
+      <div class="p-title-wrap">
+        <div class="p-avatar"><i class="fa-regular fa-building"></i></div>
+        <div>
+          <h3 id="p_title" class="p-title">—</h3>
+          <div class="p-badges">
+  <span id="p_rut" class="p-badge">—</span>
+  <span id="p_condpago" class="p-badge">—</span>
+</div>
+
+        </div>
+      </div>
+      <button id="p_close" class="p-close" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="p-grid">
+      <div class="p-item">
+        <div class="p-label">Giro</div>
+        <div id="p_giro" class="p-value">—</div>
+      </div>
+      <div class="p-item">
+        <div class="p-label">Región / Comuna</div>
+        <div id="p_regioncomuna" class="p-value">—</div>
+      </div>
+      <div class="p-item">
+        <div class="p-label">Teléfono empresa</div>
+        <div id="p_fono" class="p-value">—</div>
+      </div>
+      <div class="p-item">
+        <div class="p-label">Dirección</div>
+        <div id="p_direccion" class="p-value">—</div>
+      </div>
+
+      <div class="p-span">
+        <div class="p-label">Notas</div>
+        <div id="p_notas" class="p-value">—</div>
+      </div>
+
+      <div class="p-sep"></div>
+
+      <div class="p-item">
+        <div class="p-label">Contacto</div>
+        <div id="p_cnombre" class="p-value">—</div>
+      </div>
+      <div class="p-item">
+        <div class="p-label">Email</div>
+        <div id="p_cemail" class="p-value">—</div>
+      </div>
+      <div class="p-item">
+        <div class="p-label">Teléfono contacto</div>
+        <div id="p_cfono" class="p-value">—</div>
+      </div>
+      <div class="p-item">
+        <div class="p-label">Cargo</div>
+        <div id="p_ccargo" class="p-value">—</div>
+      </div>
+
+      <div class="p-span">
+        <div class="p-label">Notas contacto</div>
+        <div id="p_cnotas" class="p-value">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal DESCUENTOS -->
+<div id="discountOverlay" class="profile-overlay" aria-hidden="true">
+  <div class="profile-card" role="dialog" aria-modal="true" aria-labelledby="d_title">
+    <div class="p-header">
+      <div class="p-title-wrap">
+        <div class="p-avatar"><i class="fa-solid fa-tags"></i></div>
+        <div>
+          <h3 id="d_title" class="p-title">Descuentos</h3>
+        </div>
+      </div>
+      <button id="d_close" class="p-close" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="p-grid">
+      <div class="p-span">
+        <div class="p-label">Descuentos máximos por categoría</div>
+        
+         <div class="table-wrap">
+      <table class="table" id="d_table">
+        <thead>
+          <tr>
+            <th>Categoría</th>
+            <th>Descuento Máximo</th>
+          </tr>
+        </thead>
+        <tbody id="d_tbody">
+          <tr><td colspan="2">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Menú acciones: estilos -->
+<style>
+  .actions-menu{
+    position:absolute; top:44px; right:6px; z-index:10; display:none;
+    min-width:180px; padding:8px;
+    background:rgba(255,255,255,.10);
+    backdrop-filter: blur(14px) saturate(140%);
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:14px; box-shadow:0 18px 50px rgba(15,23,42,.25), inset 0 0 0 1px rgba(255,255,255,.03);
+  }
+  .actions-menu.show{display:block; animation:am-pop .12s ease}
+  @keyframes am-pop{from{transform:translateY(-4px);opacity:0} to{transform:none;opacity:1}}
+  .am-item{
+    width:100%; display:flex; align-items:center; gap:10px;
+    background:transparent; border:0; color:#0f172a; padding:10px 12px; border-radius:10px; cursor:pointer;
+  }
+  .am-item i{width:18px; text-align:center}
+  .am-item:hover{background:rgba(34,211,238,.12); box-shadow:inset 0 0 0 1px rgba(34,211,238,.25)}
+  .am-danger:hover{background:rgba(239,68,68,.12); box-shadow:inset 0 0 0 1px rgba(239,68,68,.25)}
+
+  /* ---- Profile modal (ver perfil) ---- */
+  .profile-overlay{
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background:rgba(2,6,23,.55); backdrop-filter:saturate(140%) blur(6px);
+    padding:20px; z-index:30;
+  }
+  .profile-overlay.show{display:flex; animation:fadeIn .12s ease}
+  @keyframes fadeIn{from{opacity:0} to{opacity:1}}
+
+  .profile-card{
+    width:min(980px, 92vw);
+    background:linear-gradient(180deg,#ffffff 85%, #f8fafc 100%);
+    border:1px solid #e5e7eb; border-radius:18px;
+    box-shadow:0 24px 60px rgba(15,23,42,.25);
+  }
+  .p-header{display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid #eef2f7}
+  .p-title-wrap{display:flex; gap:12px; align-items:center}
+  .p-avatar{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:#eef2f7;border:1px solid #e5e7eb}
+  .p-avatar i{font-size:18px;color:#0f172a}
+  .p-title{margin:0; font-size:20px}
+  .p-badge{font-size:12px;padding:4px 8px;border:1px solid #e5e7eb;border-radius:999px;background:#f9fafb}
+  .p-close{background:transparent;border:0;font-size:18px;cursor:pointer}
+
+  .p-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:16px 18px}
+  .p-span{grid-column:1 / -1}
+  .p-sep{grid-column:1 / -1; height:1px; background:#eef2f7; margin:4px 0}
+  .p-label{font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:.03em}
+  .p-value{font-size:15px; color:#0f172a}
+  @media (max-width: 780px){ .p-grid{grid-template-columns:1fr} }
+</style>
+
+<style>
+  .btn.primary{ background:#0ea5e9; }
+  .btn.primary:hover{ background:#0284c7; }
+</style>
+
+<style>
+/* ==== Encabezado fijo en tabla de clientes ==== */
+.table-wrap {
+  max-height: 500px;      /* ajusta el alto máximo visible */
+  overflow-y: auto;       /* activa scroll vertical */
+  overflow-x: auto;       /* por si la tabla se desborda en ancho */
+}
+
+/* Hace que todos los encabezados (th) queden pegados arriba */
+.table-wrap table thead th {
+  position: sticky !important;
+  top: 0;
+  background: #ffffff;    /* fondo blanco para tapar filas */
+  z-index: 5;             /* asegura que quede por encima de las filas */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* sombra sutil opcional */
+}
+
+
+
+  /* ==== Confirm Futurista ==== */
+  .confirm-overlay{
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background:rgba(2,6,23,.65); backdrop-filter:blur(10px) saturate(140%);
+    z-index:40; padding:20px;
+  }
+  .confirm-overlay.show{display:flex; animation:fadeIn .12s ease}
+  @keyframes fadeIn{from{opacity:0} to{opacity:1}}
+
+  .confirm-card{
+    width:min(520px,92vw);
+    background:linear-gradient(180deg,#ffffff 85%, #f8fafc 100%);
+    border:1px solid #e5e7eb; border-radius:18px;
+    box-shadow:0 24px 60px rgba(15,23,42,.35);
+  }
+  .c-body{display:grid; grid-template-columns:auto 1fr; gap:14px; padding:18px 20px 8px}
+  .c-icon{
+    width:44px;height:44px;border-radius:12px;display:grid;place-items:center;
+    background:#fff1f2; border:1px solid #fecdd3; color:#dc2626; font-size:18px;
+  }
+  .c-title{font-weight:700; font-size:18px; align-self:center}
+  .c-text{grid-column:1 / -1; color:#334155}
+  .c-actions{display:flex; gap:10px; justify-content:flex-end; padding:12px 20px 18px}
+  .btn.danger{background:#ef4444; color:#fff}
+  .btn.danger:hover{background:#dc2626}
+
+  /* Contenedor junto al buscador */
+.toolbar { display:flex; gap:12px; align-items:center; }
+.toolbar .search { flex: 1 1 auto; }
+.toolbar .filters { display:flex; gap:10px; align-items:center; }
+
+/* Select con estilo del buscador */
+.pill-input{
+  height:44px; line-height:44px;
+  padding:0 38px 0 16px;
+  border:1px solid #e5e7eb; border-radius:9999px;
+  background:#ffffff;
+  font:inherit; color:#0f172a;
+  box-shadow:0 1px 2px rgba(15,23,42,.05);
+  outline:0; appearance:none; -webkit-appearance:none; -moz-appearance:none;
+  transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  /* flecha */
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%236b7280' d='M5.3 7.3a1 1 0 011.4 0L10 10.6l3.3-3.3a1 1 0 111.4 1.4l-4 4a1 1 0 01-1.4 0l-4-4a1 1 0 010-1.4z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 14px center;
+  background-size:12px;
+  min-width:220px;
+}
+.pill-input:focus{
+  border-color: var(--primary, #0ea5e9);
+  box-shadow:0 0 0 3px rgba(14,165,233,.15);
+}
+.pill-input:hover{ background:#f8fafc; }
+.pill-input:disabled{ opacity:.6; cursor:not-allowed; }
+@media (max-width: 900px){
+  .toolbar { flex-wrap: wrap; }
+  .toolbar .filters { width:100%; }
+  .pill-input { flex:1 1 0; min-width:160px; }
+}
+
+/* Toolbar en una sola línea */
+.toolbar{display:flex;align-items:center;gap:12px;flex-wrap:nowrap}
+
+/* Buscador ocupa el espacio sobrante sin empujar filtros ni botones */
+.toolbar .search{flex:1 1 520px;min-width:320px}
+#qInput{width:100%}
+
+/* Filtros pegados al buscador */
+.toolbar .filters{display:flex;gap:10px;flex:0 0 auto}
+
+/* Botones a la derecha */
+.toolbar .actions{margin-left:auto;flex:0 0 auto}
+
+/* Evita que los selects se estiren */
+.pill-input{min-width:220px;width:auto}
+
+/* Si quieres que SOLO en pantallas chicas se apile: */
+@media (max-width: 980px){
+  .toolbar{flex-wrap:wrap}
+  .toolbar .filters{order:2;width:100%}
+  .toolbar .actions{order:3}
+}
+/* Centrar encabezado "Acción" */
+#tablaClientes thead th:last-child{ text-align:center !important; }
+
+/* Opcional: centrar el botón de acciones en las filas */
+#tablaClientes tbody td.actions-cell{ text-align:center; }
+/* Encabezados clicables con indicador */
+#tablaClientes thead th.sortable{cursor:pointer;user-select:none;position:relative;padding-right:20px}
+#tablaClientes thead th.sortable::after{content:"↕";position:absolute;right:8px;font-size:12px;opacity:.35}
+#tablaClientes thead th.sortable[data-order="asc"]::after{content:"▲";opacity:.8}
+#tablaClientes thead th.sortable[data-order="desc"]::after{content:"▼";opacity:.8}
+
+/* Desactiva selección de texto */
+body {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+
+</style>
+
+
+<script>
+  // ---- Cache inicial para edición/ver ----
+  window._CLIENTES = {{ clientes|tojson }};
+  const CLIENTES_MAP = new Map(window._CLIENTES.map(c => [String(c.id), c]));
+</script>
+
+<script>
+/* ---- Modal + Alta / Edición ---- */
+const btnAdd = document.getElementById('btnAdd');
+const modal = document.getElementById('modal');
+const closeModal = document.getElementById('closeModal');
+const cancelar = document.getElementById('cancelar');
+const form = document.getElementById('formCliente');
+const tbodyEl = document.querySelector('#tablaClientes tbody');
+
+let editingRow = null;
+
+const open = () => modal.classList.add('show');
+const close = () => { modal.classList.remove('show'); form.reset(); form.dataset.mode=''; editingRow=null; };
+
+btnAdd.addEventListener('click', () => { form.dataset.mode='create'; open(); });
+closeModal.addEventListener('click', close);
+cancelar.addEventListener('click', close);
+
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(form).entries());
+
+  // EDITAR -> PUT
+  if (form.dataset.mode === 'edit' && editingRow){
+    const id = editingRow.dataset.id;
+    const r = await fetch(`/api/clientes/${id}`, {
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    const json = await r.json();
+    if(!r.ok || !json.ok){ alert(json.error || 'Error al actualizar'); return; }
+    const c = json.cliente;
+    CLIENTES_MAP.set(String(c.id), c);
+
+    const cells = editingRow.children;
+    cells[0].textContent = c.razon || '';
+    cells[1].textContent = c.rut || '';
+    cells[2].textContent = c.region || '';
+    cells[3].textContent = c.comuna || '';
+    cells[4].textContent = (c.contacto || c.contacto_nombre || '');
+    cells[5].textContent = (c.fono || c.contacto_fono || '');
+    close();
+    if (window.applyFilter) window.applyFilter();
+    return;
+  }
+
+  // CREAR -> POST
+  const r = await fetch('/api/clientes', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(data)
+  });
+  const json = await r.json();
+  if(!r.ok || !json.ok){
+    alert(json.error || 'Error al guardar');
+    return;
+  }
+  const c = json.cliente;
+  CLIENTES_MAP.set(String(c.id), c);
+
+  const tr = document.createElement('tr');
+  tr.dataset.id = c.id;
+  tr.innerHTML = `
+    <td>${c.razon || ""}</td>
+    <td>${c.rut || ""}</td>
+    <td>${c.region || ""}</td>
+    <td>${c.comuna || ""}</td>
+    <td>${c.contacto || c.contacto_nombre || ""}</td>
+    <td>${c.fono || c.contacto_fono || ""}</td>
+    <td class="actions-cell" style="position:relative">
+      <button class="icon action-trigger" aria-label="Acciones"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+    </td>`;
+  tbodyEl.appendChild(tr);
+  close();
+  if (window.applyFilter) window.applyFilter();
+});
+</script>
+
+<script>
+/* ---- Filtro en vivo + Export ---- */
+const q = document.getElementById('qInput');
+const tableEl = document.getElementById('tablaClientes');
+const tbodyFilter = tableEl.tBodies[0];
+const btnExport = document.getElementById('btnExport');
+const NO_ID = 'noResultsRow';
+
+const norm = s => (s || '').toString().normalize('NFD')
+                  .replace(/[\u0300-\u036f]/g,'').toLowerCase();
+
+window.applyFilter = function(){
+  const query = norm(q.value.trim());
+  let shown = 0;
+  const rows = Array.from(tbodyFilter.rows).filter(tr => tr.id !== NO_ID);
+
+  rows.forEach(tr => {
+    const hit = !query || norm(tr.innerText).includes(query);
+    tr.style.display = hit ? '' : 'none';
+    if (hit) shown++;
+  });
+
+  let no = document.getElementById(NO_ID);
+  if (shown === 0) {
+    if (!no) {
+      no = document.createElement('tr'); no.id = NO_ID;
+      const td = document.createElement('td');
+      td.colSpan = tableEl.tHead.rows[0].cells.length;
+      td.style.padding = '18px'; td.style.color = '#6b7280';
+      td.textContent = 'Sin resultados';
+      no.appendChild(td); tbodyFilter.appendChild(no);
+    }
+  } else if (no) { no.remove(); }
+
+  const base = "{{ url_for('export_clientes') }}";
+  btnExport.href = q.value.trim() ? base + "?q=" + encodeURIComponent(q.value.trim()) : base;
+};
+
+q.addEventListener('input', window.applyFilter);
+window.applyFilter();
+
+/* ---- Menú de acciones por fila + Ver Perfil ---- */
+function closeAllMenus(){
+  document.querySelectorAll('.actions-menu').forEach(m => m.remove());
+}
+function buildMenu(cell){
+  const menu = document.createElement('div');
+  menu.className = 'actions-menu';
+  menu.innerHTML = `
+    <button class="am-item" data-act="view"><i class="fa-regular fa-id-card"></i> Ver perfil</button>
+    <button class="am-item" data-act="descuentos"><i class="fa-solid fa-tags"></i> Descuentos</button>
+  `;
+  cell.appendChild(menu);
+  return menu;
+}
+
+/* ---- Ver Perfil modal logic ---- */
+const pOverlay = document.getElementById('profileOverlay');
+const pClose   = document.getElementById('p_close');
+
+function setVal(el, val){
+  el.textContent = (val && String(val).trim()) ? val : '—';
+}
+function openProfile(c){
+  setVal(document.getElementById('p_title'), c.razon);
+  setVal(document.getElementById('p_rut'), c.rut);
+  setVal(document.getElementById('p_condpago'), c.cond_pago);  // 🔥 aquí agregamos
+  setVal(document.getElementById('p_giro'), c.giro);
+  setVal(document.getElementById('p_regioncomuna'), `${c.region || '—'} / ${c.comuna || '—'}`);
+  setVal(document.getElementById('p_fono'), c.fono);
+  setVal(document.getElementById('p_direccion'), c.direccion);
+  setVal(document.getElementById('p_notas'), c.notas);
+  setVal(document.getElementById('p_cnombre'), c.contacto || c.contacto_nombre);
+  setVal(document.getElementById('p_cemail'), c.contacto_email);
+  setVal(document.getElementById('p_cfono'), c.contacto_fono);
+  setVal(document.getElementById('p_ccargo'), c.contacto_cargo);
+  setVal(document.getElementById('p_cnotas'), c.contacto_notas);
+
+  pOverlay.classList.add('show');
+}
+function closeProfile(){ pOverlay.classList.remove('show'); }
+
+pClose.addEventListener('click', closeProfile);
+pOverlay.addEventListener('click', (e)=>{ if(e.target === pOverlay) closeProfile(); });
+document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeProfile(); });
+
+tableEl.addEventListener('click', async (e) => {
+  const trigger = e.target.closest('.action-trigger');
+  const item = e.target.closest('.am-item');
+
+  if (trigger){
+    const cell = trigger.closest('.actions-cell');
+    closeAllMenus();
+    const menu = buildMenu(cell);
+    menu.classList.add('show');
+    return;
+  }
+
+  if (item){
+    const act = item.dataset.act;
+    const row = item.closest('td').parentElement;
+
+    if (act === 'view'){
+      const id = row.dataset.id;
+      const c = CLIENTES_MAP.get(String(id)) || {};
+      openProfile(c);
+    }
+
+    if (act === 'descuentos'){
+  const id = row.dataset.id;
+  const c = CLIENTES_MAP.get(String(id)) || {};
+  openDiscounts(c);
+}
+
+
+    if (act === 'edit'){
+      const id = row.dataset.id;
+      const c = CLIENTES_MAP.get(String(id)) || {};
+      form.razon.value = c.razon || row.children[0].textContent.trim();
+      form.rut.value   = c.rut || row.children[1].textContent.trim();
+      form.giro.value  = c.giro || '';
+      form.region.value= c.region || row.children[2].textContent.trim();
+      form.comuna.value= c.comuna || row.children[3].textContent.trim();
+      form.fono.value  = c.fono || '';
+      form.direccion.value = c.direccion || '';
+      form.notas.value = c.notas || '';
+
+      form.contacto_nombre.value = c.contacto_nombre || c.contacto || '';
+      form.contacto_email.value  = c.contacto_email || '';
+      form.contacto_fono.value   = c.contacto_fono || '';
+      form.contacto_cargo.value  = c.contacto_cargo || '';
+      form.contacto_notas.value  = c.contacto_notas || '';
+
+      form.dataset.mode = 'edit';
+      editingRow = row;
+      open();
+    }
+
+    if (act === 'delete'){
+  const ok = await confirmFuturista('¿Eliminar este cliente? Esta acción no se puede deshacer.');
+  if (ok){
+    const id = row.dataset.id;
+    const r  = await fetch(`/api/clientes/${id}`, { method:'DELETE' });
+    const j  = await r.json();
+    if(!r.ok || !j.ok){ alert(j.error || 'Error al eliminar'); return; }
+    CLIENTES_MAP.delete(String(id));
+    row.remove();
+    if (window.applyFilter) window.applyFilter();
+  }
+}
+
+    closeAllMenus();
+  }
+});
+
+
+// cerrar menús al hacer click fuera
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.actions-cell')) closeAllMenus();
+});
+</script>
+
+<script>
+  async function confirmFuturista(msg){
+    return new Promise(resolve=>{
+      const ov  = document.getElementById('confirmOverlay');
+      const txt = document.getElementById('confirmText');
+      const ok  = document.getElementById('confirmOk');
+      const cc  = document.getElementById('confirmCancel');
+
+      txt.textContent = msg || '¿Eliminar este cliente?';
+
+      function cleanup(ans){
+        ov.classList.remove('show');
+        ok.onclick = cc.onclick = null;
+        ov.onclick = null;
+        document.removeEventListener('keydown', onKey);
+        resolve(ans);
+      }
+      function onKey(e){ if(e.key==='Escape') cleanup(false); }
+
+      ok.onclick = ()=> cleanup(true);
+      cc.onclick = ()=> cleanup(false);
+      ov.onclick = (e)=>{ if(e.target===ov) cleanup(false); };
+      document.addEventListener('keydown', onKey);
+
+      ov.classList.add('show');
+    });
+  }
+</script>
+
+<script>
+(function(){
+  const form = document.getElementById('formCliente');
+  if(!form) return;
+
+  const selRegion = form.querySelector('[name="region"]');
+  const selComuna = form.querySelector('[name="comuna"]');
+  const btnAdd = document.getElementById('btnAdd');
+  const table = document.getElementById('tablaClientes');
+
+  let DATA = {};
+
+  function fillRegions(){
+    const cur = selRegion.value;
+    const opts = ['<option value="">Seleccione una región</option>']
+      .concat(Object.keys(DATA).map(r=>`<option value="${r}">${r}</option>`));
+    selRegion.innerHTML = opts.join('');
+    if (cur && DATA[cur]) selRegion.value = cur;
+  }
+
+  function fillComunas(region){
+    const cur = selComuna.value;
+    const comunas = DATA[region] || [];
+    const opts = ['<option value="">Seleccione una comuna</option>']
+      .concat(comunas.map(c=>`<option value="${c}">${c}</option>`));
+    selComuna.innerHTML = opts.join('');
+    if (cur && comunas.includes(cur)) selComuna.value = cur;
+  }
+
+  function setRegionComuna(region, comuna){
+    if (!DATA[region]) {
+      selRegion.value = '';
+      fillComunas('');
+      return;
+    }
+    selRegion.value = region;
+    fillComunas(region);
+    if (comuna && (DATA[region]||[]).includes(comuna)) selComuna.value = comuna;
+  }
+
+  selRegion.addEventListener('change', () => fillComunas(selRegion.value));
+
+  // Carga dataset
+  fetch('{{ url_for("static", filename="regiones_comunas.json") }}')
+    .then(r=>r.json())
+    .then(j=>{ DATA=j; fillRegions(); fillComunas(selRegion.value); })
+    .catch(()=>{ /* no romper UI */ });
+
+  // Alta: reset combos
+  btnAdd.addEventListener('click', () => {
+    setTimeout(()=>{ setRegionComuna('', ''); }, 0);
+  });
+
+  // Edición: al hacer clic en "Editar" setea región/comuna del registro
+  document.addEventListener('click', (e)=>{
+    const item = e.target.closest('.am-item');
+    if (!item || item.dataset.act!=='edit') return;
+    const row = item.closest('td').parentElement;
+    const id  = String(row.dataset.id);
+    const c   = (window.CLIENTES_MAP && window.CLIENTES_MAP.get(id)) || {};
+    const trySet = () => setRegionComuna(c.region || '', c.comuna || '');
+    if (Object.keys(DATA).length) trySet();
+    else {
+      const t = setInterval(()=>{ if(Object.keys(DATA).length){ clearInterval(t); trySet(); } }, 30);
+    }
+  });
+})();
+</script>
+
+
+
+
+
+<script>
+(function(){
+  const table = document.getElementById('tablaClientes');
+  if(!table) return;
+  const thead = table.tHead;
+  const tbody = table.tBodies[0];
+  const ths = Array.from(thead.rows[0].cells);
+
+  const collator = new Intl.Collator('es', { numeric: true, sensitivity: 'base' });
+  let isSorting = false;
+
+  function applyCurrentSort(){
+    const th = thead.querySelector('th.sortable[data-order]');
+    if(!th) return;
+    const idx = ths.indexOf(th);
+    const order = th.getAttribute('data-order') || 'asc';
+
+    const rows = Array.from(tbody.querySelectorAll('tr')).filter(tr => tr.id !== 'noResultsRow');
+
+    // sort estable
+    const arr = rows.map((r,i)=>({
+      r,
+      i,
+      v: (r.children[idx]?.textContent || '').trim()
+    }));
+    arr.sort((a,b)=>{
+      const cmp = collator.compare(a.v, b.v);
+      return (order === 'asc' ? cmp : -cmp) || (a.i - b.i);
+    });
+
+    isSorting = true;
+    const frag = document.createDocumentFragment();
+    arr.forEach(o=>frag.appendChild(o.r));
+    tbody.appendChild(frag);
+    isSorting = false;
+  }
+
+  // Marcar columnas ordenables (todas menos "Acción")
+  ths.forEach((th, idx)=>{
+    if (idx === ths.length - 1) return; // última = Acción
+    th.classList.add('sortable');
+    th.addEventListener('click', ()=>{
+      const next = th.getAttribute('data-order') === 'asc' ? 'desc' : 'asc';
+      ths.forEach(h=>h.removeAttribute('data-order'));
+      th.setAttribute('data-order', next);
+      applyCurrentSort();
+      if (window.applyFilter) window.applyFilter(); // mantiene filtros
+    });
+  });
+
+  // Integrar con tu filtro sin observadores
+  if (window.applyFilter){
+    const _af = window.applyFilter;
+    window.applyFilter = function(){ _af(); if(!isSorting) applyCurrentSort(); };
+  }
+})();
+</script>
+
+ 
+<script>
+(() => {
+  const old = document.getElementById('profileOverlay');
+  if (!old) return;
+
+  // 1) Clonar overlay para eliminar todos los listeners previos
+  const clone = old.cloneNode(true);
+  old.parentNode.replaceChild(clone, old);
+
+  // 2) Close seguro solo por botón ✕
+  const pClose = clone.querySelector('#p_close');
+  const hardClose = () => clone.classList.remove('show');
+  if (pClose) pClose.addEventListener('click', hardClose);
+
+  // 3) Deshabilitar cierre por clic en backdrop
+  const stop = (e) => {
+    if (e.target === clone) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  };
+  clone.addEventListener('click',     stop, true);
+  clone.addEventListener('mousedown', stop, true);
+  clone.addEventListener('mouseup',   stop, true);
+
+  // 4) Anular cierre por ESC mientras esté abierto
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && clone.classList.contains('show')) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  }, true);
+
+  // 5) Re-definir openProfile y closeProfile para usar el overlay clonado
+  const setVal = (el, val) => { if (el) el.textContent = (val && String(val).trim()) ? val : '—'; };
+ window.openProfile = function(c){
+  setVal(clone.querySelector('#p_title'), c.razon);
+  setVal(clone.querySelector('#p_rut'), c.rut);
+  setVal(clone.querySelector('#p_condpago'), c.cond_pago);   // ✅ aquí
+  setVal(clone.querySelector('#p_giro'), c.giro);
+  setVal(clone.querySelector('#p_regioncomuna'), `${c.region || '—'} / ${c.comuna || '—'}`);
+  setVal(clone.querySelector('#p_fono'), c.fono);
+  setVal(clone.querySelector('#p_direccion'), c.direccion);
+  setVal(clone.querySelector('#p_notas'), c.notas);
+  setVal(clone.querySelector('#p_cnombre'), c.contacto || c.contacto_nombre);
+  setVal(clone.querySelector('#p_cemail'), c.contacto_email);
+  setVal(clone.querySelector('#p_cfono'), c.contacto_fono);
+  setVal(clone.querySelector('#p_ccargo'), c.contacto_cargo);
+  setVal(clone.querySelector('#p_cnotas'), c.contacto_notas);
+  clone.classList.add('show');
+};
+  window.closeProfile = hardClose;
+})();
+</script>
+
+<script>
+// --- Modal Descuentos (GLOBAL) ---
+// --- Modal Descuentos (GLOBAL) ---
+const dOverlay = document.getElementById('discountOverlay');
+const dClose   = document.getElementById('d_close');
+const dTbody   = document.getElementById('d_tbody');
+
+function openDiscounts(c){
+  if (c && Array.isArray(c.descuentos) && c.descuentos.length){
+    dTbody.innerHTML = c.descuentos.map(d => 
+      `<tr>
+        <td>${d.categoria}</td>
+        <td>${d.max}%</td>
+      </tr>`
+    ).join('');
+  } else {
+    dTbody.innerHTML = '<tr><td colspan="2">—</td></tr>';
+  }
+  dOverlay.classList.add('show');
+}
+
+function closeDiscounts(){ dOverlay.classList.remove('show'); }
+
+if (dClose) dClose.addEventListener('click', closeDiscounts);
+if (dOverlay) dOverlay.addEventListener('click', (e)=>{ if(e.target === dOverlay) closeDiscounts(); });
+document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeDiscounts(); });
+
+
+</script>
+
+
+
+<!-- Confirmación Futurista -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="c-body">
+      <div class="c-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <div class="c-title" id="confirmTitle">Eliminar cliente</div>
+      <div class="c-text" id="confirmText">¿Eliminar este cliente? Esta acción no se puede deshacer.</div>
+    </div>
+    <div class="c-actions">
+      <button type="button" class="btn ghost" id="confirmCancel">Cancelar</button>
+      <button type="button" class="btn danger" id="confirmOk">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==== Filtros Región/Comuna/Condición de Pago ====
+(function(){
+  const fRegion = document.getElementById('fRegion');
+  const fComuna = document.getElementById('fComuna');
+  const fPago   = document.getElementById('condPagoFilter');
+  const tableEl = document.getElementById('tablaClientes');
+  const tbody   = tableEl.tBodies[0];
+  const btnExport = document.getElementById('btnExport');
+  const q = document.getElementById('qInput');
+  const norm = s => (s||'').toString().normalize('NFD')
+                .replace(/[\u0300-\u036f]/g,'').toLowerCase();
+
+  let DATA = {}; // { region: [comunas] }
+
+  function fillRegions(){
+    const cur = fRegion.value;
+    fRegion.innerHTML = '<option value="">Región</option>' +
+      Object.keys(DATA).map(r=>`<option value="${r}">${r}</option>`).join('');
+    fRegion.value = cur && DATA[cur] ? cur : '';
+    fComuna.disabled = !fRegion.value;
+    fillComunas();
+  }
+
+  function fillComunas(){
+    const region = fRegion.value;
+    const comunas = DATA[region] || [];
+    const cur = fComuna.value;
+    fComuna.innerHTML = '<option value="">Comuna</option>' +
+      comunas.map(c=>`<option value="${c}">${c}</option>`).join('');
+    fComuna.value = cur && comunas.includes(cur) ? cur : '';
+  }
+
+  function rebuildFromTableFallback(){
+    const map = {};
+    Array.from(tbody.rows).forEach(tr=>{
+      const r = tr.children[2]?.textContent.trim() || '';
+      const c = tr.children[3]?.textContent.trim() || '';
+      if(!r) return;
+      map[r] = map[r] || new Set();
+      if(c) map[r].add(c);
+    });
+    DATA = Object.fromEntries(Object.entries(map)
+           .map(([k,v])=>[k, Array.from(v).sort()]));
+  }
+
+  // 🔥 Filtro unificado
+  window.applyFilter = function(){
+    const qv = norm(q.value.trim());
+    const rv = fRegion.value; 
+    const cv = fComuna.value; 
+    const pv = fPago.value; 
+    let shown = 0;
+
+    const rows = Array.from(tbody.rows).filter(tr => tr.id !== 'noResultsRow');
+    rows.forEach(tr=>{
+      const tAll = norm(tr.innerText);
+      const rTxt = tr.children[2]?.textContent.trim() || '';
+      const cTxt = tr.children[3]?.textContent.trim() || '';
+      const pTxt = tr.children[6]?.textContent.trim() || '';
+
+      const hitQ = !qv || tAll.includes(qv);
+      const hitR = !rv || rTxt === rv;
+      const hitC = !cv || cTxt === cv;
+      const hitP = !pv || pTxt === pv;
+
+      const show = hitQ && hitR && hitC && hitP;
+      tr.style.display = show ? '' : 'none';
+      if (show) shown++;
+    });
+
+    // fila "Sin resultados"
+    let no = document.getElementById('noResultsRow');
+    if (shown === 0){
+      if(!no){
+        no = document.createElement('tr'); no.id='noResultsRow';
+        const td=document.createElement('td');
+        td.colSpan=tableEl.tHead.rows[0].cells.length;
+        td.style.padding='18px'; td.style.color='#6b7280';
+        td.textContent='Sin resultados';
+        no.appendChild(td); tbody.appendChild(no);
+      }
+    } else if(no){ no.remove(); }
+
+    // Export: pasa q + filtros
+    const base = "{{ url_for('export_clientes') }}";
+    const params = [];
+    if(q.value.trim()) params.push('q='+encodeURIComponent(q.value.trim()));
+    if(rv) params.push('region='+encodeURIComponent(rv));
+    if(cv) params.push('comuna='+encodeURIComponent(cv));
+    if(pv) params.push('cond_pago='+encodeURIComponent(pv));
+    btnExport.href = params.length ? `${base}?${params.join('&')}` : base;
+  };
+
+  // Eventos de filtro
+  fRegion.addEventListener('change', ()=>{
+    fComuna.disabled = !fRegion.value;
+    fComuna.value = '';
+    fillComunas();
+    window.applyFilter();
+  });
+  fComuna.addEventListener('change', ()=> window.applyFilter());
+  fPago.addEventListener('change', ()=> window.applyFilter());
+  q.addEventListener('input', ()=> window.applyFilter());
+
+  // Carga dataset oficial
+  fetch('{{ url_for("static", filename="regiones_comunas.json") }}')
+    .then(r=> r.ok ? r.json() : Promise.reject())
+    .then(json=>{
+      DATA = json || {};
+      fillRegions();
+      fComuna.disabled = !fRegion.value;
+      fillComunas();
+      window.applyFilter();
+    })
+    .catch(()=>{
+      rebuildFromTableFallback();
+      fillRegions();
+      fComuna.disabled = !fRegion.value;
+      fillComunas();
+      window.applyFilter();
+    });
+})();
+</script>
+
+
+{% endblock %}

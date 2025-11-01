@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% set title = "Soporte" %}
+
+{% block content %}
+<section class="section soporte">
+  <h1 class="h1"><i class="fa-solid fa-headset"></i> Soporte</h1>
+
+  <!-- Panel: Crear Ticket -->
+  <div class="card support-card">
+    <div class="card-title">Levantar ticket</div>
+    <form id="frmTicket" class="support-form">
+      
+      <div class="input-icon full">
+        <i class="fa-solid fa-pen"></i>
+        <input name="asunto" class="pill-input" placeholder="Asunto del problema *" required>
+      </div>
+      
+      <div class="input-icon full">
+        <i class="fa-solid fa-cubes"></i>
+        <select name="modulo" class="pill-input">
+          <option value="">Seleccionar módulo afectado</option>
+          {% for m in modulos %}
+          <option value="{{ m }}">{{ m }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="input-icon half">
+        <i class="fa-solid fa-tags"></i>
+        <select name="categoria" class="pill-input">
+          <option>Bug</option>
+          <option>Mejora</option>
+          <option>Consulta</option>
+        </select>
+      </div>
+
+      <div class="input-icon half">
+        <i class="fa-solid fa-signal"></i>
+        <select name="prioridad" class="pill-input">
+          <option>Alta</option>
+          <option selected>Media</option>
+          <option>Baja</option>
+        </select>
+      </div>
+
+      <div class="input-icon full">
+        <i class="fa-solid fa-align-left"></i>
+        <textarea name="descripcion" rows="4" class="q-textarea" placeholder="Describe el problema y qué esperabas que ocurriera *" required></textarea>
+      </div>
+      
+      <div class="input-icon full">
+        <i class="fa-solid fa-list-ol"></i>
+        <textarea name="pasos" rows="3" class="q-textarea" placeholder="Pasos para reproducir (opcional)"></textarea>
+      </div>
+      
+      <div class="footer">
+        <button type="submit" class="btn primary"><i class="fa-solid fa-paper-plane"></i> Enviar ticket</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Panel: Listado -->
+  <div class="card support-card" style="margin-top:20px">
+    <div class="card-title">Tickets enviados</div>
+    <div class="q-actions" style="padding:10px;display:flex;justify-content:flex-end">
+      <button id="btnExport" class="btn secondary"><i class="fa-solid fa-file-export"></i> Exportar</button>
+    </div>
+    <div class="table-wrap">
+      <table class="table q-table">
+        <thead>
+          <tr>
+            <th style="width:70px">ID</th>
+            <th>Asunto</th>
+            <th style="width:120px">Módulo</th>
+            <th style="width:120px">Categoría</th>
+            <th style="width:100px">Prioridad</th>
+            <th style="width:100px">Estado</th>
+            <th style="width:160px">Fecha</th>
+            <th style="width:80px" class="actions">Acción</th>
+          </tr>
+        </thead>
+        <tbody id="tblTickets">
+          {% for t in tickets %}
+          <tr data-id="{{ t.id }}">
+            <td>#{{ t.id }}</td>
+            <td style="text-align:left"><strong>{{ t.asunto }}</strong></td>
+            <td>{{ t.modulo }}</td>
+            <td>{{ t.categoria }}</td>
+            <td><span class="badge {{ 'red' if t.prioridad=='Alta' else 'yellow' if t.prioridad=='Media' else 'blue' }}">{{ t.prioridad }}</span></td>
+            <td><span class="badge {{ 'yellow' if t.estado=='Nuevo' else 'green' }}">{{ t.estado }}</span></td>
+            <td>{{ t.creado_at }}</td>
+            <td class="actions-cell">
+              <button class="icon del" title="Eliminar"><i class="fa-regular fa-trash-can"></i></button>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" style="text-align:center;padding:16px">Aún no hay tickets</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<style>
+/* ==== ESTILOS COMPACTOS ==== */
+.support-card {
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  padding: 16px;
+}
+
+.support-form {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 12px;
+}
+.support-form .full { grid-column: span 2; }
+.support-form .half { grid-column: span 1; }
+
+.input-icon {
+  display:flex;
+  align-items:center;
+  border:1px solid #d1d5db;
+  border-radius:12px;
+  padding:0 10px;
+  background:#fff;
+}
+.input-icon i {
+  color:#64748b;
+  margin-right:8px;
+}
+.input-icon .pill-input,
+.input-icon .q-textarea {
+  border:none;
+  flex:1;
+  padding:10px;
+  font-size:14px;
+  background:transparent;
+}
+.input-icon .pill-input:focus,
+.input-icon .q-textarea:focus {
+  outline:none;
+}
+.q-textarea { resize:vertical; }
+
+.footer { grid-column: span 2; display:flex; justify-content:flex-end; padding-top:6px }
+
+.badge{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600}
+.badge.yellow{background:#fef9c3;color:#854d0e}
+.badge.green{background:#dcfce7;color:#166534}
+.badge.red{background:#fee2e2;color:#991b1b}
+.badge.blue{background:#dbeafe;color:#1e40af}
+
+.actions-cell .icon{border:none;background:none;cursor:pointer;color:#64748b;transition:.2s}
+.actions-cell .icon:hover{color:#ef4444;transform:scale(1.2)}
+
+.card-title {font-weight:600;font-size:16px;margin-bottom:10px}
+</style>
+
+<script>
+const frm = document.getElementById('frmTicket');
+frm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const data = new FormData(frm);
+  const asunto = data.get('asunto')?.trim();
+  const descr  = data.get('descripcion')?.trim();
+  if(!asunto || !descr){ alert('Asunto y descripción son obligatorios'); return; }
+
+  const res = await fetch('/api/soporte',{ method:'POST', body:data });
+  const json = await res.json();
+  if(!json.ok){ alert(json.error||'Error creando ticket'); return; }
+
+  const t = json.ticket;
+  const tr = document.createElement('tr');
+  tr.dataset.id = t.id;
+  tr.innerHTML = `
+    <td>#${t.id}</td>
+    <td style="text-align:left"><strong>${t.asunto}</strong></td>
+    <td>${t.modulo}</td><td>${t.categoria}</td>
+    <td><span class="badge ${t.prioridad=='Alta'?'red':t.prioridad=='Media'?'yellow':'blue'}">${t.prioridad}</span></td>
+    <td><span class="badge yellow">${t.estado}</span></td>
+    <td>${t.creado_at}</td>
+    <td class="actions-cell"><button class="icon del" title="Eliminar"><i class="fa-regular fa-trash-can"></i></button></td>`;
+  const tbody = document.getElementById('tblTickets');
+  if(tbody.querySelector('tr td[colspan]')) tbody.innerHTML = '';
+  tbody.prepend(tr);
+  frm.reset();
+  alert('Ticket enviado');
+});
+
+document.getElementById('tblTickets').addEventListener('click', async (e)=>{
+  const btn = e.target.closest('.del'); if(!btn) return;
+  const tr = btn.closest('tr'); const id = tr.dataset.id;
+  if(!confirm('¿Eliminar ticket #' + id + '?')) return;
+  const res = await fetch('/api/soporte/'+id,{method:'DELETE'});
+  const j = await res.json();
+  if(j.ok) tr.remove(); else alert(j.error||'Error');
+});
+
+document.getElementById('btnExport').addEventListener('click', ()=> window.location='/soporte/export');
+</script>
+{% endblock %}

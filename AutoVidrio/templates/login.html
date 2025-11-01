@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Login · AutoVidrios</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;font-family:Poppins,system-ui,Arial}
+    body,html{height:100%}
+
+    .container{display:flex;height:100vh}
+    .left,.right{flex:1;display:flex;align-items:center;justify-content:center}
+
+    .left{flex-direction:column;padding:40px;background:#fff}
+    .left h1{font-size:28px;font-weight:600;margin-bottom:8px;color:#111827;text-align:center}
+    .left p{margin-bottom:24px;color:#6b7280;text-align:center}
+    .form-box{width:100%;max-width:360px}
+
+    .btn-google{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer;font-weight:500;margin-bottom:16px}
+    .btn-google:hover{background:#f9fafb}
+
+    .divider{display:flex;align-items:center;margin:16px 0;color:#9ca3af;font-size:14px}
+    .divider::before,.divider::after{content:"";flex:1;height:1px;background:#e5e7eb}
+    .divider span{margin:0 8px}
+
+    .input{width:100%;padding:14px;border:1px solid #d1d5db;border-radius:8px;margin-bottom:16px;font-size:14px}
+    .btn-primary{width:100%;padding:14px;border:none;border-radius:8px;background:#0ea5e9;color:#fff;font-weight:600;font-size:15px;cursor:pointer;transition:background .2s}
+    .btn-primary:hover{background:#0284c7}
+
+    .meta{margin-top:14px;font-size:13px;color:#6b7280;text-align:center}
+    .meta a{color:#0ea5e9;text-decoration:none}
+
+    .forgot{text-align:right;margin-top:-10px;margin-bottom:20px}
+    .forgot a{font-size:13px;color:#0ea5e9;text-decoration:none}
+
+    .right{background:linear-gradient(135deg,#3b82f6,#0ea5e9);display:flex;align-items:center;justify-content:center;padding:20px}
+    .right img{max-width:100%;height:auto}
+
+    /* POPUP */
+    .popup{position:fixed;top:0;left:0;width:100%;height:100%;
+         background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;
+         visibility:hidden;opacity:0;transition:.3s}
+    .popup.active{visibility:visible;opacity:1}
+    .popup-box{
+      background:#fff;padding:28px;border-radius:16px;text-align:center;
+      color:#1f2937;max-width:340px;width:90%;box-shadow:0 8px 24px rgba(0,0,0,.15);
+      animation:fadeIn .3s ease;
+    }
+    .popup-box .icon{
+      background:#fef3c7;color:#f59e0b;font-size:28px;
+      width:56px;height:56px;line-height:56px;margin:0 auto 12px;
+      border-radius:50%;
+    }
+    .popup-box h2{margin-bottom:8px;font-size:20px;font-weight:600}
+    .popup-box p{margin-bottom:18px;font-size:14px;color:#4b5563}
+    .popup-box button{
+      background:#0ea5e9;color:#fff;border:none;padding:10px 20px;border-radius:8px;
+      font-weight:600;cursor:pointer;transition:background .2s
+    }
+    .popup-box button:hover{background:#0284c7}
+    @keyframes fadeIn{from{transform:scale(.9);opacity:.5}to{transform:scale(1);opacity:1}}
+
+    .right{
+  position: relative;
+  background: linear-gradient(135deg,#3b82f6,#0ea5e9);
+  padding: 0;              /* sin padding para que la imagen cubra todo */
+  min-height: 100vh;       /* ocupa la mitad en alto también */
+}
+.right img{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;       /* llena el área (puede recortar) */
+  display: block;
+}
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Columna izquierda -->
+    <div class="left">
+      <div class="form-box">
+        <h1>Bienvenido a AutoVidrios</h1>
+        <p>Ingresa para tener acceso al sistema de cotizaciones.</p>
+
+        <button class="btn-google">
+          <img src="https://www.svgrepo.com/show/355037/google.svg" width="20" alt="Google">
+          Continuar con Google
+        </button>
+
+        <div class="divider"><span>o</span></div>
+
+        <form method="post" action="/login">
+          <input class="input" type="text" name="user" placeholder="Correo o usuario" required>
+          <input class="input" type="password" name="pwd" placeholder="Contraseña" required>
+
+          <div class="forgot">
+            <a href="/recuperar">¿Olvidaste tu contraseña?</a>
+          </div>
+
+          <button class="btn-primary" type="submit">Continuar</button>
+        </form>
+
+        <div class="meta">
+          ¿No tienes cuenta? <a href="/registro">Crear una cuenta nueva</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Columna derecha -->
+    <div class="right">
+      <img src="https://cecinasllanquihue.cl/blog/wp-content/uploads/2020/11/torres-del-paine-4827345_1920.jpg" alt="Ilustración">
+    </div>
+  </div>
+
+  <!-- Popup error -->
+  <div class="popup" id="popup">
+    <div class="popup-box">
+      <div class="icon">!</div>
+      <h2>Ups, algo salió mal</h2>
+      <p id="popup-msg">Revisa tus datos e inténtalo nuevamente.</p>
+      <button onclick="closePopup()">Entendido</button>
+    </div>
+  </div>
+
+  <script>
+    function closePopup(){
+      document.getElementById("popup").classList.remove("active");
+    }
+    {% if error %}
+      document.getElementById("popup").classList.add("active");
+      document.getElementById("popup-msg").innerText = "{{ error }}";
+    {% endif %}
+  </script>
+</body>
+</html>

@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% set title = "Pedidos" %}
+
+{% block content %}
+<section class="section">
+  <h1 class="h1"><i class="fa-solid fa-truck"></i> Pedidos</h1>
+
+  <!-- Buscador + filtros + acciones -->
+  <div class="q-toolbar">
+    <div class="q-filtros">
+      <div class="search-box">
+        <i class="fa-solid fa-search"></i>
+        <input id="qInput" type="text" placeholder="Buscar pedido por cliente o número…">
+      </div>
+      <input type="date" id="fDesde" class="pill-input" placeholder="Desde">
+      <input type="date" id="fHasta" class="pill-input" placeholder="Hasta">
+      <select id="fProp" class="pill-input">
+        <option value="">Propietario (todos)</option>
+        {% for u in usuarios %}
+        <option value="{{ u }}">{{ u }}</option>
+        {% endfor %}
+      </select>
+      <select id="fRol" class="pill-input">
+        <option value="">Rol (todos)</option>
+        {% for r in roles %}
+        <option value="{{ r }}">{{ r }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="q-actions">
+      <a class="btn primary" href="/cotizaciones"><i class="fa-solid fa-plus"></i> Nueva desde Cotización</a>
+      <button class="btn secondary"><i class="fa-solid fa-file-export"></i> Exportar</button>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="card">
+    <div class="card-title">Listado de Pedidos</div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Cotización</th>
+            <th>Cliente</th>
+            <th>Fecha</th>
+            <th>Entrega</th>
+            <th>Pago</th>
+            <th>Estado Entrega</th>
+            <th>Estado Producción</th>
+            <th>Total</th>
+            <th class="actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tablaPedidos">
+          {% for p in pedidos %}
+          <tr data-fecha="{{ p.fecha }}" data-prop="{{ p.propietario }}" data-rol="{{ p.rol }}">
+            <td>{{ p.numero }}</td>
+            <td>#{{ p.cotizacion_id }}</td>
+            <td>{{ p.cliente }}</td>
+            <td>{{ p.fecha }}</td>
+            <td>{{ p.fecha_entrega }}</td>
+            <td>{{ p.cond_pago }}</td>
+            <td>
+              <span class="badge {% if p.estado_entrega == 'Pendiente' %}yellow{% elif p.estado_entrega == 'Entregado' %}green{% endif %}">
+                {{ p.estado_entrega }}
+              </span>
+            </td>
+            <td>
+              <span class="badge {% if p.estado_prod == 'En producción' %}blue{% elif p.estado_prod == 'Finalizado' %}green{% endif %}">
+                {{ p.estado_prod }}
+              </span>
+            </td>
+            <td>${{ "{:,.0f}".format(p.total) }}</td>
+            <td class="actions-cell">
+              <div class="actions-menu">
+                <button class="icon"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                <div class="menu">
+                  <a href="/pedidos/{{ p.numero }}/pdf" target="_blank">
+                    <i class="fa-solid fa-file-pdf"></i> Descargar PDF
+                  </a>
+                  <a href="#"><i class="fa-solid fa-pen"></i> Editar</a>
+                  <a href="#" class="danger"><i class="fa-solid fa-trash"></i> Eliminar</a>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<style>
+/* Toolbar */
+.q-toolbar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:16px;
+  overflow-x:auto;
+  padding-bottom:4px;
+}
+.q-filtros {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex:1;
+  min-width:0;
+}
+.q-filtros > * {
+  flex:0 0 auto;
+}
+.q-actions { display:flex; gap:10px; }
+
+/* Buscador */
+.search-box {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  border:1px solid var(--stroke);
+  border-radius:999px;
+  background:#fff;
+  width:260px;
+  box-shadow:0 1px 2px rgba(0,0,0,.05);
+}
+.search-box i { color:#94a3b8; }
+.search-box input {
+  border:none;
+  outline:none;
+  flex:1;
+  font-size:14px;
+  font-family:"Poppins", sans-serif;
+  background:transparent;
+}
+
+/* Inputs */
+.pill-input {
+  border:1px solid var(--stroke);
+  border-radius:999px;
+  padding:8px 12px;
+  font-size:14px;
+  background:#fff;
+  font-family:"Poppins", sans-serif;
+  min-width:140px;
+}
+
+/* Badges */
+.badge {
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:500;
+  color:#fff;
+}
+.badge.yellow { background:#facc15; color:#000; }
+.badge.green { background:#22c55e; }
+.badge.blue { background:#0ea5e9; }
+
+/* Acciones */
+.actions-menu { position:relative; }
+.actions-menu .menu {
+  display:none;
+  position:absolute;
+  right:0;
+  top:-10px;
+  background:#fff;
+  border:1px solid var(--stroke);
+  border-radius:8px;
+  box-shadow:0 4px 12px rgba(0,0,0,.1);
+  overflow:hidden;
+  z-index:20;
+}
+.actions-menu:hover .menu { display:block; }
+.actions-menu .menu a {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 12px;
+  font-size:14px;
+  text-decoration:none;
+  color:#0f172a;
+}
+.actions-menu .menu a:hover { background:#f1f5f9; }
+.actions-menu .menu a.danger { color:#dc2626; }
+</style>
+
+<script>
+// Filtro buscador + filtros extra
+function aplicarFiltros(){
+  let q = document.getElementById("qInput").value.toLowerCase();
+  let desde = document.getElementById("fDesde").value;
+  let hasta = document.getElementById("fHasta").value;
+  let prop = document.getElementById("fProp").value;
+  let rol = document.getElementById("fRol").value;
+
+  document.querySelectorAll("#tablaPedidos tr").forEach(tr=>{
+    let txt = tr.innerText.toLowerCase();
+    let fecha = tr.dataset.fecha;
+    let propietario = tr.dataset.prop;
+    let rolTr = tr.dataset.rol;
+
+    let show = true;
+    if(q && !txt.includes(q)) show=false;
+    if(desde && fecha < desde) show=false;
+    if(hasta && fecha > hasta) show=false;
+    if(prop && propietario!==prop) show=false;
+    if(rol && rolTr!==rol) show=false;
+
+    tr.style.display = show? "" : "none";
+  });
+}
+
+["qInput","fDesde","fHasta","fProp","fRol"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", aplicarFiltros);
+});
+</script>
+{% endblock %}
